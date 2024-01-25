@@ -10,10 +10,10 @@
  * elements in the i-th row.
  */
 class SparseIndex {
-public:
-    std::vector<int> indices;
-    std::vector<int> indptr;
-    void print();
+	public:
+		std::vector<int> indices;
+		std::vector<int> indptr;
+		void print();
 };
 
 
