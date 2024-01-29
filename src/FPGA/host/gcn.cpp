@@ -11,41 +11,61 @@ GCNParams GCNParams::get_default() {
 }
 
 GCN::GCN(GCNParams params, GCNData *input_data) {
+	
 	init_rand_state();
+	
 	this->params = params;
+	
 	data = input_data;
+	
 	modules.reserve(8);
+	
 	variables.reserve(8);
 	variables.emplace_back(data->feature_index.indices.size(), false);
+	
 	input = &variables.back();
+	
 	modules.push_back(new Dropout(input, params.dropout));
+	
 	variables.emplace_back(params.num_nodes * params.hidden_dim);
 	Variable *layer1_var1 = &variables.back();
 	variables.emplace_back(params.input_dim * params.hidden_dim, true, true);
 	Variable *layer1_weight = &variables.back();
+	
 	layer1_weight->glorot(params.input_dim, params.hidden_dim);
+	
 	// sparsematmul
+
 	modules.push_back(new SparseMatmul(input, layer1_weight, layer1_var1, &data->feature_index, params.num_nodes, params.input_dim, params.hidden_dim));
+
 	variables.emplace_back(params.num_nodes * params.hidden_dim);
 	Variable *layer1_var2 = &variables.back();
+	
 	// graphsum
 	modules.push_back(new GraphSum(layer1_var1, layer1_var2, &data->graph, params.hidden_dim));
+	
 	// RELU
 	modules.push_back(new ReLU(layer1_var2));
+	
 	// dropout
 	modules.push_back(new Dropout(layer1_var2, params.dropout));
+	
 	variables.emplace_back(params.num_nodes * params.output_dim);
 	Variable *layer2_var1 = &variables.back();
 	variables.emplace_back(params.hidden_dim * params.output_dim, true, true);
 	Variable *layer2_weight = &variables.back();
+	
 	layer2_weight->glorot(params.hidden_dim, params.output_dim);
+	
 	// dense matrix multiply
 	modules.push_back(new Matmul(layer1_var2, layer2_weight, layer2_var1, params.num_nodes, params.hidden_dim, params.output_dim));
 	variables.emplace_back(params.num_nodes * params.output_dim);
 	output = &variables.back();
+	
 	// graph sum
 	modules.push_back(new GraphSum(layer2_var1, output, &data->graph, params.output_dim));
 	truth = std::vector<int>(params.num_nodes);
+	
 	// cross entropy loss
 	modules.push_back(new CrossEntropyLoss(output, truth.data(), &loss, params.output_dim));
 
@@ -155,14 +175,19 @@ void GCN::run() {
 	int epoch = 1;
 	float total_time = 0.0;
 	std::vector<float> loss_history;
+	
 	for(; epoch <= params.epochs; epoch++) {
 		float train_loss, train_acc, val_loss, val_acc;
 		timer_start(TMR_TRAIN);
+		
 		std::tie(train_loss, train_acc) = train_epoch();
 		std::tie(val_loss, val_acc) = eval(2);
+		
 		printf("epoch=%d train_loss=%.5f train_acc=%.5f val_loss=%.5f val_acc=%.5f time=%.5f\n",
 				epoch, train_loss, train_acc, val_loss, val_acc, timer_stop(TMR_TRAIN));
+		
 		loss_history.push_back(val_loss);
+		
 		if(params.early_stopping > 0 && epoch >= params.early_stopping) {
 			float recent_loss = 0.0;
 			for(int i = epoch - params.early_stopping; i < epoch; i++)

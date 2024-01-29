@@ -53,7 +53,6 @@ int main(int argc, char** argv) {
 	GCN gcn(params, &data);
 
 	//load bitsream and program FPGA devices
-	
 	std::vector<cl::Device> devices = get_devices("Xilinx");
 	devices.resize(1);
 	cl::Device device = devices[0];
@@ -62,7 +61,7 @@ int main(int argc, char** argv) {
 	// Create Context 
 	OCL_CHECK(err, cl::Context context(device, NULL, NULL, NULL, &err));
 
-	// Create Command Queues 
+	// Create Command Queues (OOO) 
 	std::vector<cl::CommandQueue> queues(num_cu);
 	for (int i = 0; i < num_cu; i++) {
 		queues[i] = cl::CommandQueue(context, device, cl::QueueProperties::Profiling | cl::QueueProperties::OutOfOrder, &err);

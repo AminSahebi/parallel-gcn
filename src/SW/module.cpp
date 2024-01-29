@@ -9,8 +9,95 @@
 #include <omp.h>
 #endif
 
+#define BLOCK_SIZE 8
+
+
+// Helper function for blocked matrix multiplication
+void block_mmul(const float* A, const float* B, float* C, int block_size, int lda, int ldb, int ldc) {
+//#pragma omp parallel for schedule(static) // Use collapse(2) for parallelizing nested loops
+//#pragma omp parallel for
+
+    for (int i = 0; i < block_size; i++) {
+        for (int j = 0; j < block_size; j++) {
+            for (int k = 0; k < block_size; k++) {
+                C[i * ldc + j] += A[i * lda + k] * B[k * ldb + j];
+            }
+        }
+    }
+}
+
+// Helper function for blocked sparse matrix multiplication
+void block_sparse_mmul(const float* A, const float* B, float* C, const int* indices, int block_size, int lda, int ldb, int ldc) {
+    for (int i = 0; i < lda; i++) {
+        for (int j = 0; j < ldb; j++) {
+            int index = indices[i];
+            for (int k = 0; k < block_size; k++) {
+                C[i * ldc + j] += A[i * lda + k] * B[j * ldb + k];
+            }
+        }
+    }
+}
+
+
 Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p) :
         a(a), b(b), c(c), m(m), n(n), p(p) {}
+
+
+
+void Matmul::forward(bool training) {
+    timer_start(TMR_MATMUL_FW);
+    c->zero();
+#pragma omp parallel for schedule(static)
+    // Loop over blocks
+    for (int bi = 0; bi < m; bi += BLOCK_SIZE) {
+        for (int bj = 0; bj < n; bj += BLOCK_SIZE) {
+            for (int bk = 0; bk < p; bk += BLOCK_SIZE) {
+                // Perform blocked matrix multiplication
+                block_mmul(
+                    &a->data[bi * n], // A block
+                    &b->data[bj * p + bk], // B block
+                    &c->data[bi * p + bk], // C block
+                    BLOCK_SIZE, n, p, p
+                );
+            }
+        }
+    }
+
+    timer_stop(TMR_MATMUL_FW);
+}
+
+void Matmul::backward() {
+    timer_start(TMR_MATMUL_BW);
+    a->zero_grad();
+    b->zero_grad();
+#pragma omp parallel for schedule(static)
+    // Loop over blocks
+    for (int bi = 0; bi < m; bi += BLOCK_SIZE) {
+        for (int bj = 0; bj < n; bj += BLOCK_SIZE) {
+            for (int bk = 0; bk < p; bk += BLOCK_SIZE) {
+                // Perform blocked matrix multiplication
+                block_mmul(
+                    &c->grad[bi * p + bk], // C gradient block
+                    &b->data[bj * p + bk], // B block
+                    &a->grad[bi * n], // A gradient block
+                    BLOCK_SIZE, p, p, n
+                );
+#pragma omp parallel for schedule(static)
+                // Update B gradients (unrolled for efficiency)
+                for (int i = 0; i < BLOCK_SIZE; i++) {
+                    for (int j = 0; j < BLOCK_SIZE; j++) {
+                        for (int k = 0; k < BLOCK_SIZE; k++) {
+                            b->grad[(bj + j) * p + bk + k] += c->grad[(bi + i) * p + bk + k] * a->data[(bi + i) * n + bj + j];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    timer_stop(TMR_MATMUL_BW);
+}
+/*
 
 void Matmul::forward(bool training) {
     timer_start(TMR_MATMUL_FW);
@@ -61,6 +148,8 @@ void Matmul::backward() {
     timer_stop(TMR_MATMUL_BW);
 }
 
+*/
+
 SparseMatmul::SparseMatmul(Variable *a, Variable *b, Variable *c, SparseIndex *sp, int m, int n, int p) :
         a(a), b(b), c(c), sp(sp), m(m), n(n), p(p) {}
 
@@ -110,6 +199,7 @@ void SparseMatmul::backward() {
 #endif
     timer_stop(TMR_SPMATMUL_BW);
 }
+
 
 GraphSum::GraphSum(Variable *in, Variable *out, SparseIndex *graph, int dim) :
         in(in), out(out), graph(graph), dim(dim) {}

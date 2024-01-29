@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include "parser.h"
-
+#define DEBUG
 using namespace std;
 Parser::Parser(GCNParams *gcnParams, GCNData *gcnData, std::string graph_name) {
 	this->graph_file.open("data/" + graph_name + ".graph");
@@ -42,6 +42,9 @@ void Parser::parseGraph() {
 	}
 
 	gcnParams->num_nodes = node;
+#ifdef DEBUG
+	printf("number of nodes: %d\n", node);
+#endif
 }
 
 bool Parser::isValidInput() {
