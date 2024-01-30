@@ -9,20 +9,23 @@
 #include <omp.h>
 #endif
 
-#define BLOCK_SIZE 4
+#define BLOCKED
 
+
+#ifdef BLOCKED
+#define BLOCK_SIZE 4
 
 //Helper function for blocked matrix multiplication
 void block_mmul(const float* A, const float* B, float* C, int block_size, int lda, int ldb, int ldc) {
-//#pragma omp parallel for schedule(static) // Use collapse(2) for parallelizing nested loops
-//#pragma omp parallel for
-        for (int i = 0; i < block_size; i++) {
-                for (int j = 0; j < block_size; j++) {
-                        for (int k = 0; k < block_size; k++) {
-                                C[i * ldc + j] += A[i * lda + k] * B[k * ldb + j];
-                        }
-                }
-        }
+	//#pragma omp parallel for schedule(static) // Use collapse(2) for parallelizing nested loops
+	//#pragma omp parallel for
+	for (int i = 0; i < block_size; i++) {
+		for (int j = 0; j < block_size; j++) {
+			for (int k = 0; k < block_size; k++) {
+				C[i * ldc + j] += A[i * lda + k] * B[k * ldb + j];
+			}
+		}
+	}
 }
 
 
@@ -51,42 +54,6 @@ Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p) :
 		timer_stop(TMR_MATMUL_FW);
 	}
 void Matmul::backward() {
-    timer_start(TMR_MATMUL_BW);
-    a->zero_grad();
-    b->zero_grad();
-#pragma omp parallel for schedule(static)
-
-    // Loop over blocks
-    for (int bi = 0; bi < m; bi += BLOCK_SIZE) {
-        for (int bj = 0; bj < n; bj += BLOCK_SIZE) {
-            for (int bk = 0; bk < p; bk += BLOCK_SIZE) {
-                // Perform blocked matrix multiplication
-                block_mmul(
-                    &c->grad[bi * p + bk], // C gradient block
-                    &b->data[bj * p + bk], // B block
-                    &a->grad[bi * n], // A gradient block
-                    BLOCK_SIZE, p, p, n
-                );
-
-                // Update B gradients with blocked matrix multiplication
-                block_mmul(
-                    &b->grad[bj * p + bk], // B gradient block
-                    &c->grad[bi * p + bk], // C gradient block
-                    &a->data[bi * n], // A block
-                    BLOCK_SIZE, p, n, p
-                );
-            }
-        }
-    }
-
-    timer_stop(TMR_MATMUL_BW);
-}
-
-
-
-
-/*
-void Matmul::backward() {
 	timer_start(TMR_MATMUL_BW);
 	a->zero_grad();
 	b->zero_grad();
@@ -102,74 +69,113 @@ void Matmul::backward() {
 						&a->grad[bi * n], // A gradient block
 						BLOCK_SIZE, p, p, n
 					  );
-//#pragma omp parallel for schedule(static)
-				// Update B gradients (unrolled for efficiency)
-				for (int i = 0; i < BLOCK_SIZE; i++) {
-					for (int j = 0; j < BLOCK_SIZE; j++) {
-						for (int k = 0; k < BLOCK_SIZE; k++) {
-							b->grad[(bj + j) * p + bk + k] += c->grad[(bi + i) * p + bk + k] * a->data[(bi + i) * n + bj + j];
-						}
-					}
-				}
+
+				// Update B gradients with blocked matrix multiplication
+				block_mmul(
+						&b->grad[bj * p + bk], // B gradient block
+						&c->grad[bi * p + bk], // C gradient block
+						&a->data[bi * n], // A block
+						BLOCK_SIZE, p, n, p
+					  );
 			}
 		}
 	}
 
 	timer_stop(TMR_MATMUL_BW);
 }
-*/
-/*
 
-   void Matmul::forward(bool training) {
-   timer_start(TMR_MATMUL_FW);
-   c->zero();
+#endif
+
+
+/*
+   void Matmul::backward() {
+   timer_start(TMR_MATMUL_BW);
+   a->zero_grad();
+   b->zero_grad();
 #pragma omp parallel for schedule(static)
-for (int i = 0; i < m; i++)
-for (int j = 0; j < n; j++) {
+// Loop over blocks
+for (int bi = 0; bi < m; bi += BLOCK_SIZE) {
+for (int bj = 0; bj < n; bj += BLOCK_SIZE) {
+for (int bk = 0; bk < p; bk += BLOCK_SIZE) {
+// Perform blocked matrix multiplication
+block_mmul(
+&c->grad[bi * p + bk], // C gradient block
+&b->data[bj * p + bk], // B block
+&a->grad[bi * n], // A gradient block
+BLOCK_SIZE, p, p, n
+);
+//#pragma omp parallel for schedule(static)
+// Update B gradients (unrolled for efficiency)
+for (int i = 0; i < BLOCK_SIZE; i++) {
+for (int j = 0; j < BLOCK_SIZE; j++) {
+for (int k = 0; k < BLOCK_SIZE; k++) {
+b->grad[(bj + j) * p + bk + k] += c->grad[(bi + i) * p + bk + k] * a->data[(bi + i) * n + bj + j];
+}
+}
+}
+}
+}
+}
+
+timer_stop(TMR_MATMUL_BW);
+}
+*/
+#ifndef BLOCKED
+Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p) :
+        a(a), b(b), c(c), m(m), n(n), p(p) {}
+
+
+void Matmul::forward(bool training) {
+	timer_start(TMR_MATMUL_FW);
+	c->zero();
+#pragma omp parallel for schedule(static)
+	for (int i = 0; i < m; i++)
+		for (int j = 0; j < n; j++) {
 #ifdef SIMD
 #pragma omp simd
 #endif
-for (int k = 0; k < p; k++)
-c->data[i * p + k] += a->data[i * n + j] * b->data[j * p + k];
-}
-timer_stop(TMR_MATMUL_FW);
+			for (int k = 0; k < p; k++)
+				c->data[i * p + k] += a->data[i * n + j] * b->data[j * p + k];
+		}
+	timer_stop(TMR_MATMUL_FW);
 }
 
 void Matmul::backward() {
-timer_start(TMR_MATMUL_BW);
-a->zero_grad();
-b->zero_grad();
+	timer_start(TMR_MATMUL_BW);
+	a->zero_grad();
+	b->zero_grad();
 #pragma omp parallel for schedule(static)
-for (int i = 0; i < m; i++)
-for (int j = 0; j < n; j++) {
-float tmp = 0;
+	for (int i = 0; i < m; i++)
+		for (int j = 0; j < n; j++) {
+			float tmp = 0;
 #ifdef SIMD
 #pragma omp simd reduction(+:tmp)
 #endif
-for (int k = 0; k < p; k++) {
-tmp += c->grad[i * p + k] * b->data[j * p + k];
+			for (int k = 0; k < p; k++) {
+				tmp += c->grad[i * p + k] * b->data[j * p + k];
 #ifdef OMP
-b->local_grad[omp_get_thread_num()][j * p + k] += c->grad[i * p + k] * a->data[i * n + j];
+				b->local_grad[omp_get_thread_num()][j * p + k] += c->grad[i * p + k] * a->data[i * n + j];
 #else
-b->grad[j * p + k] += c->grad[i * p + k] * a->data[i * n + j];
+				b->grad[j * p + k] += c->grad[i * p + k] * a->data[i * n + j];
 #endif
-}
-a->grad[i * n + j] = tmp;
-}
+			}
+			a->grad[i * n + j] = tmp;
+		}
 #ifdef OMP
 #ifdef SIMD
 #pragma omp parallel for simd schedule(static)
 #else
 #pragma omp parallel for schedule(static)
 #endif
-for(int i = 0; i < b->grad.size(); i++)
-for(int thread = 0; thread < omp_get_num_threads(); thread++)
-b->grad[i] += b->local_grad[thread][i];
+	for(int i = 0; i < b->grad.size(); i++)
+		for(int thread = 0; thread < omp_get_num_threads(); thread++)
+			b->grad[i] += b->local_grad[thread][i];
 #endif
-timer_stop(TMR_MATMUL_BW);
+	timer_stop(TMR_MATMUL_BW);
 }
 
-*/
+
+#endif
 
 SparseMatmul::SparseMatmul(Variable *a, Variable *b, Variable *c, SparseIndex *sp, int m, int n, int p) :
 	a(a), b(b), c(c), sp(sp), m(m), n(n), p(p) {}

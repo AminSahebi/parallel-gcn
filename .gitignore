@@ -31,6 +31,8 @@
 *.out
 *.app
 *.zip
+*.json
+*.npy
 *.tgz
 /reddit
 /data
