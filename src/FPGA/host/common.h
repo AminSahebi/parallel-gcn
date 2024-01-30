@@ -98,6 +98,6 @@ char* read_binary_file(const std::string &xclbin_file_name, unsigned &nb)
 	bin_file.read(buf, nb);
 	return buf;
 }
-bool is_number(const std::string &s) {
+/*bool is_number(const std::string &s) {
 	  return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit);
-}
+}*/

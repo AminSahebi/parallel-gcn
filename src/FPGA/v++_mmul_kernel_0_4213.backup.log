@@ -1,0 +1,43 @@
+INFO: [v++ 60-1306] Additional information associated with this v++ link can be found at:
+	Reports: /home/amin/parallel-gcn/src/FPGA/_x/reports/link
+	Log files: /home/amin/parallel-gcn/src/FPGA/_x/logs/link
+INFO: [v++ 60-1548] Creating build summary session with primary output /home/amin/parallel-gcn/src/FPGA/kernel/mmul/hardware/mmul_kernel_0.xclbin.link_summary, at Tue Jan 30 16:18:45 2024
+INFO: [v++ 60-1315] Creating rulecheck session with output '/home/amin/parallel-gcn/src/FPGA/_x/reports/link/v++_link_mmul_kernel_0_guidance.html', at Tue Jan 30 16:18:45 2024
+INFO: [v++ 60-895]   Target platform: /opt/xilinx/platforms/xilinx_u280_gen3x16_xdma_1_202211_1/xilinx_u280_gen3x16_xdma_1_202211_1.xpfm
+INFO: [v++ 60-1578]   This platform contains Xilinx Shell Archive '/opt/xilinx/platforms/xilinx_u280_gen3x16_xdma_1_202211_1/hw/hw.xsa'
+INFO: [v++ 74-78] Compiler Version string: 2022.2
+INFO: [v++ 60-629] Linking for hardware target
+INFO: [v++ 60-423]   Target device: xilinx_u280_gen3x16_xdma_1_202211_1
+INFO: [v++ 60-1332] Run 'run_link' status: Not started
+INFO: [v++ 60-1443] [16:18:48] Run run_link: Step system_link: Started
+INFO: [v++ 60-1453] Command Line: system_link --xo /home/amin/parallel-gcn/src/FPGA/kernel/mmul/mmul_kernel_0.xo -keep --config /home/amin/parallel-gcn/src/FPGA/_x/link/int/syslinkConfig.ini --xpfm /opt/xilinx/platforms/xilinx_u280_gen3x16_xdma_1_202211_1/xilinx_u280_gen3x16_xdma_1_202211_1.xpfm --target hw --output_dir /home/amin/parallel-gcn/src/FPGA/_x/link/int --temp_dir /home/amin/parallel-gcn/src/FPGA/_x/link/sys_link
+INFO: [v++ 60-1454] Run Directory: /home/amin/parallel-gcn/src/FPGA/_x/link/run_link
+INFO: [SYSTEM_LINK 82-70] Extracting xo v3 file /home/amin/parallel-gcn/src/FPGA/kernel/mmul/mmul_kernel_0.xo
+INFO: [SYSTEM_LINK 82-53] Creating IP database /home/amin/parallel-gcn/src/FPGA/_x/link/sys_link/_sysl/.cdb/xd_ip_db.xml
+INFO: [SYSTEM_LINK 82-38] [16:18:50] build_xd_ip_db started: /opt/Xilinx/Vitis/2022.2/bin/build_xd_ip_db -ip_search 0  -sds-pf /home/amin/parallel-gcn/src/FPGA/_x/link/sys_link/hw.hpfm -clkid 0 -ip /home/amin/parallel-gcn/src/FPGA/_x/link/sys_link/iprepo/xilinx_com_hls_mmul_kernel_0_1_0,mmul_kernel_0 -o /home/amin/parallel-gcn/src/FPGA/_x/link/sys_link/_sysl/.cdb/xd_ip_db.xml
+INFO: [SYSTEM_LINK 82-37] [16:18:54] build_xd_ip_db finished successfully
+Time (s): cpu = 00:00:04 ; elapsed = 00:00:04 . Memory (MB): peak = 449.945 ; gain = 0.000 ; free physical = 34825 ; free virtual = 39401
+INFO: [SYSTEM_LINK 82-51] Create system connectivity graph
+INFO: [SYSTEM_LINK 82-102] Applying explicit connections to the system connectivity graph: /home/amin/parallel-gcn/src/FPGA/_x/link/sys_link/cfgraph/cfgen_cfgraph.xml
+INFO: [SYSTEM_LINK 82-38] [16:18:54] cfgen started: /opt/Xilinx/Vitis/2022.2/bin/cfgen  -sp mmul_kernel_0.A:HBM[0:1] -sp mmul_kernel_0.B:HBM[2:3] -sp mmul_kernel_0.C:HBM[4:5] -dpa_mem_offload false -dmclkid 0 -r /home/amin/parallel-gcn/src/FPGA/_x/link/sys_link/_sysl/.cdb/xd_ip_db.xml -o /home/amin/parallel-gcn/src/FPGA/_x/link/sys_link/cfgraph/cfgen_cfgraph.xml
+INFO: [CFGEN 83-0] Kernel Specs: 
+INFO: [CFGEN 83-0]   kernel: mmul_kernel_0, num: 1  {mmul_kernel_0_1}
+INFO: [CFGEN 83-0] Port Specs: 
+INFO: [CFGEN 83-0]   kernel: mmul_kernel_0, k_port: A, sptag: HBM[0:1]
+INFO: [CFGEN 83-0]   kernel: mmul_kernel_0, k_port: B, sptag: HBM[2:3]
+INFO: [CFGEN 83-0]   kernel: mmul_kernel_0, k_port: C, sptag: HBM[4:5]
+ERROR: [CFGEN 83-2291] --sp tag applied to invalid kernel instance: mmul_kernel_0
+ERROR: [CFGEN 83-2291] --sp tag applied to invalid kernel instance: mmul_kernel_0
+ERROR: [CFGEN 83-2291] --sp tag applied to invalid kernel instance: mmul_kernel_0
+ERROR: [CFGEN 83-2298] Exiting due to previous error
+ERROR: [SYSTEM_LINK 82-36] [16:18:57] cfgen failed
+Time (s): cpu = 00:00:04 ; elapsed = 00:00:04 . Memory (MB): peak = 449.945 ; gain = 0.000 ; free physical = 34826 ; free virtual = 39403
+ERROR: [SYSTEM_LINK 82-62] Error generating design file for /home/amin/parallel-gcn/src/FPGA/_x/link/sys_link/cfgraph/cfgen_cfgraph.xml, command: /opt/Xilinx/Vitis/2022.2/bin/cfgen  -sp mmul_kernel_0.A:HBM[0:1] -sp mmul_kernel_0.B:HBM[2:3] -sp mmul_kernel_0.C:HBM[4:5] -dpa_mem_offload false -dmclkid 0 -r /home/amin/parallel-gcn/src/FPGA/_x/link/sys_link/_sysl/.cdb/xd_ip_db.xml -o /home/amin/parallel-gcn/src/FPGA/_x/link/sys_link/cfgraph/cfgen_cfgraph.xml
+ERROR: [SYSTEM_LINK 82-96] Error applying explicit connections to the system connectivity graph
+ERROR: [SYSTEM_LINK 82-79] Unable to create system connectivity graph
+INFO: [v++ 60-1442] [16:18:57] Run run_link: Step system_link: Failed
+Time (s): cpu = 00:00:09 ; elapsed = 00:00:09 . Memory (MB): peak = 475.316 ; gain = 0.000 ; free physical = 34883 ; free virtual = 39460
+ERROR: [v++ 60-661] v++ link run 'run_link' failed
+ERROR: [v++ 60-626] Kernel link failed to complete
+ERROR: [v++ 60-703] Failed to finish linking
+INFO: [v++ 60-1653] Closing dispatch client.

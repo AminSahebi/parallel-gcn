@@ -4,33 +4,96 @@
 #include <cstdlib>
 #include <cmath>
 #include <immintrin.h>
+#include <CL/cl2.hpp>
+
 
 #ifdef OMP
 #include <omp.h>
 #endif
 
-Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p) :
-	a(a), b(b), c(c), m(m), n(n), p(p) {}
+Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p, cl::Context& context)
+	: a(a), b(b), c(c), m(m), n(n), p(p), context(context) {  // Initialize context
 
-	void Matmul::forward(bool training) {
+
+		std::vector<cl::Device> devices = get_devices("Xilinx");
+		devices.resize(1);
+		cl::Device device = devices[0];
+		std::cout << "DEVICE " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
+
+		// Create Context
+		cl::Context context(device, NULL, NULL, NULL, &err);
+
+		// Create Command Queues (OOO)
+		std::vector<cl::CommandQueue> queues(num_cu);
+		for (int i = 0; i < num_cu; i++) {
+			queues[i] = cl::CommandQueue(context, device, cl::QueueProperties::Profiling | cl::QueueProperties::OutOfOrder, &err);
+		}
+		// Load Binary File from disk 
+		char* fileBuf = read_binary_file("path/to/your/kernel_binary_file.xclbin", fileBufSize);
+		cl::Program::Binaries bins{{fileBuf, fileBufSize}};
+
+		// Create the program object from the binary and program the FPGA device with it 
+		OCL_CHECK(err, cl::Program program(context, devices, bins, NULL, &err));
+
+		delete[] fileBuf;
+
+		// Create OpenCL kernel
+		kernel = cl::Kernel(program, "mmul_kernel_0");
+
+		// Create OpenCL buffers and set kernel arguments
+		bufferA = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+				sizeof(float) * m * n, a->data.data());
+		bufferB = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+				sizeof(float) * n * p, b->data.data());
+		bufferC = cl::Buffer(context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
+				sizeof(float) * m * p, c->data.data());
+
+		kernel.setArg(0, bufferA);
+		kernel.setArg(1, bufferB);
+		kernel.setArg(2, bufferC);
+	}
+
+
+void Matmul::forward(bool training) {
+	timer_start(TMR_MATMUL_FW);
+
+	// Enqueue kernel for execution
+	cl::CommandQueue queue(context, devices[0]);
+	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(m, p));
+
+	// Read the result back from the device
+	queue.enqueueReadBuffer(bufferC, CL_TRUE, 0, sizeof(float) * m * p, c->data.data());
+
+	timer_stop(TMR_MATMUL_FW);
+}
+
+
+
+
+
+/*
+   Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p) :
+   a(a), b(b), c(c), m(m), n(n), p(p) {}
+
+   void Matmul::forward(bool training) {
 
 #ifdef DEBUG
-	printf("Matmul forward is called\n");
+printf("Matmul forward is called\n");
 #endif
-		timer_start(TMR_MATMUL_FW);
-		c->zero();
+timer_start(TMR_MATMUL_FW);
+c->zero();
 #pragma omp parallel for schedule(static)
-		for (int i = 0; i < m; i++)
-			for (int j = 0; j < n; j++) {
+for (int i = 0; i < m; i++)
+for (int j = 0; j < n; j++) {
 #ifdef SIMD
 #pragma omp simd
 #endif
-				for (int k = 0; k < p; k++)
-					c->data[i * p + k] += a->data[i * n + j] * b->data[j * p + k];
-			}
-		timer_stop(TMR_MATMUL_FW);
-	}
-
+for (int k = 0; k < p; k++)
+c->data[i * p + k] += a->data[i * n + j] * b->data[j * p + k];
+}
+timer_stop(TMR_MATMUL_FW);
+}
+*/
 void Matmul::backward() {
 #ifdef DEBUG
 	printf("Matmul backward is called\n");
@@ -73,7 +136,7 @@ SparseMatmul::SparseMatmul(Variable *a, Variable *b, Variable *c, SparseIndex *s
 
 	void SparseMatmul::forward(bool training) {
 #ifdef DEBUG
-	printf("Sparse Matmul forward is called\n");
+		printf("Sparse Matmul forward is called\n");
 #endif
 		timer_start(TMR_SPMATMUL_FW);
 		c->zero();
@@ -130,7 +193,7 @@ GraphSum::GraphSum(Variable *in, Variable *out, SparseIndex *graph, int dim) :
 	void GraphSum::forward(bool training) {
 
 #ifdef DEBUG
-	printf("Graphsum forward is called\n");
+		printf("Graphsum forward is called\n");
 #endif
 		timer_start(TMR_GRAPHSUM_FW);
 		out->zero();

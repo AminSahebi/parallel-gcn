@@ -3,7 +3,8 @@
 #include <immintrin.h>
 #include "variable.h"
 #include "sparse.h"
-
+//#include <CL/cl2.hpp>
+#include "common.h"
 class Module {
 public:
     virtual void forward(bool) = 0;
@@ -11,7 +12,7 @@ public:
     virtual ~Module() {};
 };
 
-class Matmul: public Module {
+/*class Matmul: public Module {
     Variable *a, *b, *c;
     int m, n, p;
 public:
@@ -20,7 +21,7 @@ public:
     void forward(bool);
     void backward();
 };
-
+*/
 class SparseMatmul: public Module {
     Variable *a, *b, *c;
     SparseIndex *sp;
@@ -75,6 +76,26 @@ public:
     void forward(bool);
     void backward();
 };
+
+class Matmul : public Module {
+    Variable *a, *b, *c;
+    int m, n, p;
+        cl_int err;              // Declare here
+    unsigned fileBufSize;    // Declare here
+    cl::Context context;  // Add context as a member variable
+
+    cl::Kernel kernel;
+    cl::Buffer bufferA, bufferB, bufferC;
+
+public:
+    Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p);
+    ~Matmul() {}
+    void forward(bool training);
+    void backward();
+};
+
+
+
 
 
 #define MODULE_H

@@ -7,8 +7,8 @@ MODE := hw
 #MODE := hw_emu
 
 #PLATFORM := xilinx_u250_gen3x16_xdma_3_1_202020_1
-PLATFORM := xilinx_u250_gen3x16_xdma_4_1_202210_1
-#PLATFORM := xilinx_u280_gen3x16_xdma_1_202211_1
+#PLATFORM := xilinx_u250_gen3x16_xdma_4_1_202210_1
+PLATFORM := xilinx_u280_gen3x16_xdma_1_202211_1
 #PLATFORM := xilinx_u280_xdma_201920_3
 
 
@@ -36,7 +36,7 @@ MM_XCLBIN := mmul_kernel_0.xclbin
 MM_CONN := --config $(CURRENT_DIR)/kernel/mmul/connectivity_gcn.cfg #--kernel_frequency=250
 mm_hw_srcdir:= $(CURRENT_DIR)/kernel/mmul
 mm_hw_bindir:= $(CURRENT_DIR)/kernel/mmul/hardware
-mm_hw_src:= $(wildcard $(CURRENT_DIR)/kernel/gcn/gcn_kernel.cpp)
+mm_hw_src:= $(wildcard $(CURRENT_DIR)/kernel/mmul/mmul.cpp)
 
 mm_hw: $(MM_XCLBIN)
 
@@ -47,7 +47,7 @@ $(MM_XCLBIN): $(mm_hw_srcdir)/$(MM_XOS)
 	mkdir -p $(mm_hw_bindir)
 	$(VPP) $(VPP_COMMON_OPTS) -l -o $(mm_hw_bindir)/$@ $+ $(MM_CONN) 
 
-
+gcn_app := gcn
 gcn_srcdir := $(CURRENT_DIR)/host
 gcn_bindir := $(CURRENT_DIR)/host/bin
 gcn_src := $(wildcard $(gcn_srcdir)/*.cpp)

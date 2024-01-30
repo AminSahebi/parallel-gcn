@@ -1,0 +1,29 @@
+INFO: [v++ 60-1306] Additional information associated with this v++ compile can be found at:
+	Reports: /home/amin/parallel-gcn/src/FPGA/_x/reports/mmul_kernel_0
+	Log files: /home/amin/parallel-gcn/src/FPGA/_x/logs/mmul_kernel_0
+INFO: [v++ 60-1548] Creating build summary session with primary output /home/amin/parallel-gcn/src/FPGA/kernel/mmul/mmul_kernel_0.xo.compile_summary, at Tue Jan 30 16:16:53 2024
+INFO: [v++ 60-1315] Creating rulecheck session with output '/home/amin/parallel-gcn/src/FPGA/_x/reports/mmul_kernel_0/v++_compile_mmul_kernel_0_guidance.html', at Tue Jan 30 16:16:53 2024
+INFO: [v++ 60-895]   Target platform: /opt/xilinx/platforms/xilinx_u280_gen3x16_xdma_1_202211_1/xilinx_u280_gen3x16_xdma_1_202211_1.xpfm
+INFO: [v++ 60-1578]   This platform contains Xilinx Shell Archive '/opt/xilinx/platforms/xilinx_u280_gen3x16_xdma_1_202211_1/hw/hw.xsa'
+INFO: [v++ 74-78] Compiler Version string: 2022.2
+INFO: [v++ 60-585] Compiling for hardware target
+INFO: [v++ 60-423]   Target device: xilinx_u280_gen3x16_xdma_1_202211_1
+INFO: [v++ 60-242] Creating kernel: 'mmul_kernel_0'
+
+===>The following messages were generated while  performing high-level synthesis for kernel: mmul_kernel_0 Log file: /home/amin/parallel-gcn/src/FPGA/_x/mmul_kernel_0/mmul_kernel_0/vitis_hls.log :
+INFO: [v++ 204-61] Pipelining loop 'VITIS_LOOP_19_2'.
+INFO: [v++ 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 2, loop 'VITIS_LOOP_19_2'
+INFO: [v++ 204-61] Pipelining loop 'VITIS_LOOP_28_3_VITIS_LOOP_29_4'.
+INFO: [v++ 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 126, loop 'VITIS_LOOP_28_3_VITIS_LOOP_29_4'
+INFO: [v++ 204-61] Pipelining loop 'VITIS_LOOP_41_6_VITIS_LOOP_42_7'.
+INFO: [v++ 200-1470] Pipelining result : Target II = 1, Final II = 1, Depth = 4, loop 'VITIS_LOOP_41_6_VITIS_LOOP_42_7'
+INFO: [v++ 200-790] **** Loop Constraint Status: All loop constraints were satisfied.
+INFO: [v++ 200-789] **** Estimated Fmax: 411.00 MHz
+INFO: [v++ 60-594] Finished kernel compilation
+INFO: [v++ 60-244] Generating system estimate report...
+INFO: [v++ 60-1092] Generated system estimate report: /home/amin/parallel-gcn/src/FPGA/_x/reports/mmul_kernel_0/system_estimate_mmul_kernel_0.xtxt
+INFO: [v++ 60-586] Created /home/amin/parallel-gcn/src/FPGA/kernel/mmul/mmul_kernel_0.xo
+INFO: [v++ 60-2343] Use the vitis_analyzer tool to visualize and navigate the relevant reports. Run the following command. 
+    vitis_analyzer /home/amin/parallel-gcn/src/FPGA/kernel/mmul/mmul_kernel_0.xo.compile_summary 
+INFO: [v++ 60-791] Total elapsed time: 0h 0m 49s
+INFO: [v++ 60-1653] Closing dispatch client.
