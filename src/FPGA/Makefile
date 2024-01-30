@@ -24,28 +24,28 @@ VPP_COMMON_OPTS += --vivado.synth.jobs 8 --vivado.impl.jobs 8 #--advanced.param 
 
 LFLAGS := -L$(XILINX_XRT)/lib -lxilinxopencl -lpthread -lrt
 
-gcn_app := gcn
+mm_app := mmul
 
 # kernel targets
-GCN_HW := gcn_kernel_0
-GCN_XCLBIN := gcn_kernel_0.xclbin
+MM_HW := mmul_kernel_0
+MM_XCLBIN := mmul_kernel_0.xclbin
 
 # kernel rules
-GCN_XOS := gcn_kernel_0.xo
-GCN_XCLBIN := gcn_kernel_0.xclbin
-GCN_CONN := --config $(CURRENT_DIR)/kernel/gcn/connectivity_gcn.cfg #--kernel_frequency=250
-gcn_hw_srcdir:= $(CURRENT_DIR)/kernel/gcn
-gcn_hw_bindir:= $(CURRENT_DIR)/kernel/gcn/hardware
-gcn_hw_src:= $(wildcard $(CURRENT_DIR)/kernel/gcn/gcn_kernel.cpp)
+MM_XOS := mmul_kernel_0.xo
+MM_XCLBIN := mmul_kernel_0.xclbin
+MM_CONN := --config $(CURRENT_DIR)/kernel/mmul/connectivity_gcn.cfg #--kernel_frequency=250
+mm_hw_srcdir:= $(CURRENT_DIR)/kernel/mmul
+mm_hw_bindir:= $(CURRENT_DIR)/kernel/mmul/hardware
+mm_hw_src:= $(wildcard $(CURRENT_DIR)/kernel/gcn/gcn_kernel.cpp)
 
-gcn_hw: $(GCN_XCLBIN)
+mm_hw: $(MM_XCLBIN)
 
-$(gcn_hw_srcdir)/$(GCN_XOS): $(gcn_hw_src)
-	$(VPP) $(VPP_COMMON_OPTS) -c -k $(GCN_HW) -o $@ $+
+$(mm_hw_srcdir)/$(MM_XOS): $(mm_hw_src)
+	$(VPP) $(VPP_COMMON_OPTS) -c -k $(MM_HW) -o $@ $+
 
-$(GCN_XCLBIN): $(gcn_hw_srcdir)/$(GCN_XOS)
-	mkdir -p $(gcn_hw_bindir)
-	$(VPP) $(VPP_COMMON_OPTS) -l -o $(gcn_hw_bindir)/$@ $+ $(GCN_CONN) 
+$(MM_XCLBIN): $(mm_hw_srcdir)/$(MM_XOS)
+	mkdir -p $(mm_hw_bindir)
+	$(VPP) $(VPP_COMMON_OPTS) -l -o $(mm_hw_bindir)/$@ $+ $(MM_CONN) 
 
 
 gcn_srcdir := $(CURRENT_DIR)/host
