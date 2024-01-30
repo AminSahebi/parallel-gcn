@@ -69,10 +69,10 @@ build: $(gcn_app)
 
 $(gcn_app): $(gcn_objects)
 	mkdir -p $(gcn_bindir)
-	g++ $(CFLAGS) -o $(gcn_bindir)/$@ $^ $(LFLAGS)
+	g++ $(CFLAGS) -o $(gcn_bindir)/$@ $? $(LFLAGS)
 
 $(gcn_srcdir)/%.o: $(gcn_srcdir)/%.cpp
-	g++ -c -o $@ $<
+	g++ -c -o $@ $?
 
 
 run: $(XCLBIN) $(HOST_EXE) $(EMCONFIG_FILE)

@@ -34,9 +34,14 @@
 *.json
 *.npy
 *.tgz
+*.txt
+*.svmlight
+*.graph
+*.split
 _x/
 .ipcache/
 /reddit
+/src/SW/reddit
 /data
 /.vscode
 /gcn-*

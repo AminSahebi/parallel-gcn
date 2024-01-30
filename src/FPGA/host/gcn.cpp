@@ -6,6 +6,9 @@
 #include <cstdio>
 #include <tuple>
 
+
+
+
 GCNParams GCNParams::get_default() {
 	return {2708, 1433, 16, 7, 0.5, 0.01, 5e-4, 100, 0};
 }
@@ -59,6 +62,7 @@ GCN::GCN(GCNParams params, GCNData *input_data) {
 	
 	// dense matrix multiply
 	modules.push_back(new Matmul(layer1_var2, layer2_weight, layer2_var1, params.num_nodes, params.hidden_dim, params.output_dim));
+	
 	variables.emplace_back(params.num_nodes * params.output_dim);
 	output = &variables.back();
 	

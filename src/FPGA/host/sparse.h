@@ -1,4 +1,5 @@
 #ifndef SPARSE_H
+#define SPARSE_H
 #include <string>
 #include <sstream>
 #include <iostream>
@@ -17,5 +18,4 @@ class SparseIndex {
 };
 
 
-#define SPARSE_H
 #endif

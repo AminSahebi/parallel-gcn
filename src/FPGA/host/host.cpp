@@ -11,11 +11,15 @@
 #include <numeric>
 #include <cstring>
 //#define DEBUG1
-#include "module.h"
+//#include "module.h"
 #include "optim.h"
 #include "variable.h"
-#include <vector>
 #include "parser.h"
+
+//#include <CL/cl2.hpp>
+
+#include "common.h"
+
 
 #define DATA_SIZE 64 * 4096 
 #define num_cu  15
@@ -25,61 +29,67 @@ using namespace std;
 
 
 int main(int argc, char** argv) {
+	cl_int err;
+	unsigned fileBufSize;
 
-
-
-	std::string binaryFile = argv[1];
-
-	setbuf(stdout, NULL);
 	if (argc < 2) {
 		cout << "parallel_gcn graph_name [num_nodes input_dim hidden_dim output_dim"
-			"dropout learning_rate, weight_decay epochs early_stopping]" << endl;
+			<< "dropout learning_rate, weight_decay epochs early_stopping]" << endl;
 		return EXIT_FAILURE;
 	}
 
+	std::string binaryFile = argv[1];
 
+	// Load graph data and GCN parameters
 	GCNParams params = GCNParams::get_default();
 	GCNData data;
-	std::string input_name(argv[1]);
+	string input_name(argv[1]);
 	Parser parser(&params, &data, input_name);
 	if (!parser.parse()) {
-		std::cerr << "Cannot read input: " << input_name << std::endl;
+		cerr << "Cannot read input: " << input_name << endl;
 		exit(EXIT_FAILURE);
 	}
 
-	//load graph data and GCN parameters
-	GCN gcn(params, &data);
-
-	//load bitsream and program FPGA devices
-	//	std::vector<cl::Device> devices = get_devices("Xilinx");
-	//	devices.resize(1);
-	//	cl::Device device = devices[0];
-	//	std::cout << "DEVICE " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
+	// Load OpenCL program and create kernel
+	std::vector<cl::Device> devices = get_devices("xilinx");
+	devices.resize(1);
+	cl::Device device = devices[0];
+	cout << "DEVICE " << device.getInfo<CL_DEVICE_NAME>() << endl;
 
 	// Create Context 
-	//	OCL_CHECK(err, cl::Context context(device, NULL, NULL, NULL, &err));
+	//cl::Context context(device, NULL, NULL, NULL, &err);
+	OCL_CHECK(err, cl::Context context(device, NULL, NULL, NULL, &err));
 
-	// Create Command Queues (OOO) 
-	//	std::vector<cl::CommandQueue> queues(num_cu);
-	//	for (int i = 0; i < num_cu; i++) {
-	//		queues[i] = cl::CommandQueue(context, device, cl::QueueProperties::Profiling | cl::QueueProperties::OutOfOrder, &err);
-	//	}
 
-	// Load Binary File from disk 
-	//	char* fileBuf = read_binary_file(binaryFile, fileBufSize);
-	//	cl::Program::Binaries bins{{fileBuf, fileBufSize}};
+	/** Create Command Queues */
+	std::vector<cl::CommandQueue> queues(num_cu);
+	for (int i = 0; i < num_cu; i++) {
+		queues[i] = cl::CommandQueue(context, device, cl::QueueProperties::Profiling | cl::QueueProperties::OutOfOrder, &err);
+	}
+
+	/** Load Binary File from disk */
+	char* fileBuf = read_binary_file(binaryFile, fileBufSize);
+	cl::Program::Binaries bins{{fileBuf, fileBufSize}};
+
 
 	// Create the program object from the binary and program the FPGA device with it 
-	//	OCL_CHECK(err, cl::Program program(context, devices, bins, NULL, &err));
+	OCL_CHECK(err, cl::Program program(context, devices, bins, NULL, &err));
 
-	//	delete[] fileBuf;
-	// OpenCL functions to program the device finishes here 
+	delete[] fileBuf;
+	// OpenCL functions to program the device finish here 
 
 	// Create Kernels 
-	//	std::vector<cl::Kernel> krnls(num_cu);
+	std::vector<cl::Kernel> krnel;
 
-//	cl::Context context(device, NULL, NULL, NULL, &err);
-//	Matmul matmul(a_ptr, b_ptr, c_ptr, m, n, p, context);
+	// Define other variables needed for your application, e.g., a_ptr, b_ptr, c_ptr, m, n, p
+
+	krnel[0] = cl::Kernel(program, "mmul_kernel_0:0", &err);
+
+
+	// Create OpenCL buffers and set kernel arguments
+
+	GCN gcn(params, &data);
+
 
 	gcn.run(); // to be deployed on kernels
 	return EXIT_SUCCESS;

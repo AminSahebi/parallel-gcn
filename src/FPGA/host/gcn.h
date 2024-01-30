@@ -1,11 +1,12 @@
 #ifndef GCN_H
+#define GCN_H
+
 #include <vector>
 #include <utility>
 #include "variable.h"
 #include "sparse.h"
 #include "module.h"
 #include "optim.h"
-
 struct GCNParams {
 	int num_nodes, input_dim, hidden_dim, output_dim;
 	float dropout, learning_rate, weight_decay;
@@ -43,5 +44,4 @@ class GCN {
 	void run();
 };
 
-#define GCN_H
 #endif

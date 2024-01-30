@@ -4,61 +4,35 @@
 #include <cstdlib>
 #include <cmath>
 #include <immintrin.h>
-#include <CL/cl2.hpp>
+//#include <CL/cl2.hpp>
 
 
 #ifdef OMP
 #include <omp.h>
 #endif
 
-Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p, cl::Context& context)
-	: a(a), b(b), c(c), m(m), n(n), p(p), context(context) {  // Initialize context
+// In the constructor definition
+Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p)
+    : a(a), b(b), c(c), m(m), n(n), p(p) {  // Use the provided devices parameter
 
 
-		std::vector<cl::Device> devices = get_devices("Xilinx");
-		devices.resize(1);
-		cl::Device device = devices[0];
-		std::cout << "DEVICE " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
+	bufferA = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+			sizeof(float) * m * n, a->data.data());
+	bufferB = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+			sizeof(float) * n * p, b->data.data());
+	bufferC = cl::Buffer(context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
+			sizeof(float) * m * p, c->data.data());
 
-		// Create Context
-		cl::Context context(device, NULL, NULL, NULL, &err);
-
-		// Create Command Queues (OOO)
-		std::vector<cl::CommandQueue> queues(num_cu);
-		for (int i = 0; i < num_cu; i++) {
-			queues[i] = cl::CommandQueue(context, device, cl::QueueProperties::Profiling | cl::QueueProperties::OutOfOrder, &err);
-		}
-		// Load Binary File from disk 
-		char* fileBuf = read_binary_file("path/to/your/kernel_binary_file.xclbin", fileBufSize);
-		cl::Program::Binaries bins{{fileBuf, fileBufSize}};
-
-		// Create the program object from the binary and program the FPGA device with it 
-		OCL_CHECK(err, cl::Program program(context, devices, bins, NULL, &err));
-
-		delete[] fileBuf;
-
-		// Create OpenCL kernel
-		kernel = cl::Kernel(program, "mmul_kernel_0");
-
-		// Create OpenCL buffers and set kernel arguments
-		bufferA = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-				sizeof(float) * m * n, a->data.data());
-		bufferB = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-				sizeof(float) * n * p, b->data.data());
-		bufferC = cl::Buffer(context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
-				sizeof(float) * m * p, c->data.data());
-
-		kernel.setArg(0, bufferA);
-		kernel.setArg(1, bufferB);
-		kernel.setArg(2, bufferC);
-	}
-
+	kernel.setArg(0, bufferA);
+	kernel.setArg(1, bufferB);
+	kernel.setArg(2, bufferC);
+}
 
 void Matmul::forward(bool training) {
 	timer_start(TMR_MATMUL_FW);
 
+
 	// Enqueue kernel for execution
-	cl::CommandQueue queue(context, devices[0]);
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(m, p));
 
 	// Read the result back from the device

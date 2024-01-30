@@ -1,10 +1,11 @@
 #ifndef MODULE_H
+#define MODULE_H
 
 #include <immintrin.h>
 #include "variable.h"
 #include "sparse.h"
-//#include <CL/cl2.hpp>
-#include "common.h"
+#include <CL/cl2.hpp>
+
 class Module {
 public:
     virtual void forward(bool) = 0;
@@ -80,15 +81,18 @@ public:
 class Matmul : public Module {
     Variable *a, *b, *c;
     int m, n, p;
-        cl_int err;              // Declare here
-    unsigned fileBufSize;    // Declare here
-    cl::Context context;  // Add context as a member variable
+  //      cl_int err;              // Declare here
+ //   unsigned fileBufSize;    // Declare here
+ //   cl::Context context;  // Add context as a member variable
 
-    cl::Kernel kernel;
-    cl::Buffer bufferA, bufferB, bufferC;
+	cl::CommandQueue queue;  // Declare queue as a member
+
+	cl::Kernel kernel;
+	cl::Buffer bufferA, bufferB, bufferC;
 
 public:
-    Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p);
+Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p);
+
     ~Matmul() {}
     void forward(bool training);
     void backward();
@@ -98,5 +102,4 @@ public:
 
 
 
-#define MODULE_H
 #endif
