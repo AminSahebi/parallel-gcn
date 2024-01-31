@@ -478,3 +478,89 @@ Tue Jan 30 17:55:37 2024: SERVER: destructor for server bound to port 37581
 Tue Jan 30 17:55:37 2024: XCD main fifo: Good unlink of /tmp/xcdmain7955ae35-1b37-44c5-b66b-0fcc5d3db15f
 Tue Jan 30 17:55:37 2024: Server exiting with status 0.
 Tue Jan 30 17:55:37 2024: Closing log file.
+Wed Jan 31 12:48:00 2024: Running xcd server. This server was built by gradle.
+Wed Jan 31 12:48:00 2024: Server was asked to start on port: '39821'
+Wed Jan 31 12:48:00 2024: Server is using token UUID: '0bbe1f7a-edf4-4f96-98eb-2516480f32ec'
+Wed Jan 31 12:48:00 2024: SESSION_MGR: creating session with session uuid: '6d04a3e9-ade5-4ab9-8d63-1f78fcd2ec76' and name 'default'
+Wed Jan 31 12:48:00 2024: Attempting to start server on port '39821'
+Wed Jan 31 12:48:00 2024: XCD main fifo: created main fifo '/tmp/xcdmain0bbe1f7a-edf4-4f96-98eb-2516480f32ec', fd read = 13
+Wed Jan 31 12:48:00 2024: Running Dispatch Server
+Wed Jan 31 12:48:00 2024: Version 2.2.0
+Wed Jan 31 12:48:09 2024: Dispatch Server: Accepted socket connection from client
+Wed Jan 31 12:48:09 2024: Starting Socket connection
+Wed Jan 31 12:48:09 2024: EXCHANGE_TOKEN received, server token: 0bbe1f7a-edf4-4f96-98eb-2516480f32ec, passed token: 0bbe1f7a-edf4-4f96-98eb-2516480f32ec
+Wed Jan 31 12:48:09 2024: DISPATCH_HANDLER: Adding handler from function makeHandler in library libxv_system_diagram
+Wed Jan 31 12:48:09 2024: SESSION_MGR: creating session with session uuid: '98f03c49-a9a3-4b97-87ac-5fb01f5642ba' and name 'v++_compile_mmul_kernel_0'
+Wed Jan 31 12:48:09 2024: KERNEL_SVC: creating session with uuid: '98f03c49-a9a3-4b97-87ac-5fb01f5642ba' and name 'v++_compile_mmul_kernel_0'
+Wed Jan 31 12:48:09 2024: GUIDANCE_SMGR: creating guidance session with uuid: '98f03c49-a9a3-4b97-87ac-5fb01f5642ba' and name 'v++_compile_mmul_kernel_0'
+Wed Jan 31 12:48:09 2024: SYSTEM_DIAGRAM: creating session with uuid: '98f03c49-a9a3-4b97-87ac-5fb01f5642ba' and name 'v++_compile_mmul_kernel_0'
+Wed Jan 31 12:48:16 2024: Dispatch Server: Accepted socket connection from client
+Wed Jan 31 12:48:16 2024: Starting Socket connection
+Wed Jan 31 12:48:44 2024: SESSION_MGR: closing session for UUID '98f03c49-a9a3-4b97-87ac-5fb01f5642ba' with name 'v++_compile_mmul_kernel_0'
+Wed Jan 31 12:48:44 2024: KERNEL_SVC: closing session for UUID '98f03c49-a9a3-4b97-87ac-5fb01f5642ba' with name 'v++_compile_mmul_kernel_0'
+Wed Jan 31 12:48:44 2024: GUIDANCE_SMGR: closing session for UUID '98f03c49-a9a3-4b97-87ac-5fb01f5642ba' with name 'v++_compile_mmul_kernel_0'
+Wed Jan 31 12:48:44 2024: SYSTEM_DIAGRAM: closing session for UUID '98f03c49-a9a3-4b97-87ac-5fb01f5642ba' with name 'v++_compile_mmul_kernel_0'
+Wed Jan 31 12:48:44 2024: STOP_SERVER received, server token: 0bbe1f7a-edf4-4f96-98eb-2516480f32ec, passed token: 0bbe1f7a-edf4-4f96-98eb-2516480f32ec
+Wed Jan 31 12:48:44 2024: Socket received request to stop server.
+Wed Jan 31 12:48:44 2024: Dispatch Server: do_await_stop
+Wed Jan 31 12:48:44 2024: Dispatch Server: stopping mainFifo_
+Wed Jan 31 12:48:44 2024: XCD main fifo: Stopping
+Wed Jan 31 12:48:44 2024: XCD main fifo: do_read error code: Operation canceled
+Wed Jan 31 12:48:44 2024: XCD main fifo: bytes_transferred: 0
+Wed Jan 31 12:48:44 2024: SERVER: destructor for server bound to port 39821
+Wed Jan 31 12:48:44 2024: XCD main fifo: Good unlink of /tmp/xcdmain0bbe1f7a-edf4-4f96-98eb-2516480f32ec
+Wed Jan 31 12:48:44 2024: Server exiting with status 0.
+Wed Jan 31 12:48:44 2024: Closing log file.
+Wed Jan 31 12:48:47 2024: Running xcd server. This server was built by gradle.
+Wed Jan 31 12:48:47 2024: Server was asked to start on port: '37403'
+Wed Jan 31 12:48:47 2024: Server is using token UUID: 'b12d51a5-bab4-4473-b0fa-28e13ce78eb4'
+Wed Jan 31 12:48:47 2024: SESSION_MGR: creating session with session uuid: '6d04a3e9-ade5-4ab9-8d63-1f78fcd2ec76' and name 'default'
+Wed Jan 31 12:48:47 2024: Attempting to start server on port '37403'
+Wed Jan 31 12:48:47 2024: XCD main fifo: created main fifo '/tmp/xcdmainb12d51a5-bab4-4473-b0fa-28e13ce78eb4', fd read = 12
+Wed Jan 31 12:48:47 2024: Running Dispatch Server
+Wed Jan 31 12:48:47 2024: Version 2.2.0
+Wed Jan 31 12:48:56 2024: Dispatch Server: Accepted socket connection from client
+Wed Jan 31 12:48:56 2024: Starting Socket connection
+Wed Jan 31 12:48:56 2024: EXCHANGE_TOKEN received, server token: b12d51a5-bab4-4473-b0fa-28e13ce78eb4, passed token: b12d51a5-bab4-4473-b0fa-28e13ce78eb4
+Wed Jan 31 12:48:56 2024: DISPATCH_HANDLER: Adding handler from function makeHandler in library libxv_system_diagram
+Wed Jan 31 12:48:56 2024: SESSION_MGR: creating session with session uuid: '39c30739-018a-446a-8e67-3186ed4310bc' and name 'v++_link_mmul_kernel_0'
+Wed Jan 31 12:48:56 2024: KERNEL_SVC: creating session with uuid: '39c30739-018a-446a-8e67-3186ed4310bc' and name 'v++_link_mmul_kernel_0'
+Wed Jan 31 12:48:56 2024: GUIDANCE_SMGR: creating guidance session with uuid: '39c30739-018a-446a-8e67-3186ed4310bc' and name 'v++_link_mmul_kernel_0'
+Wed Jan 31 12:48:56 2024: SYSTEM_DIAGRAM: creating session with uuid: '39c30739-018a-446a-8e67-3186ed4310bc' and name 'v++_link_mmul_kernel_0'
+Wed Jan 31 12:49:24 2024: Dispatch Server: Accepted socket connection from client
+Wed Jan 31 12:49:24 2024: Starting Socket connection
+Wed Jan 31 12:49:33 2024: Dispatch Server: Accepted socket connection from client
+Wed Jan 31 12:49:33 2024: Starting Socket connection
+Wed Jan 31 12:50:58 2024: Dispatch Server: Accepted socket connection from client
+Wed Jan 31 12:50:58 2024: Starting Socket connection
+Wed Jan 31 12:50:58 2024: Dispatch Server: Accepted socket connection from client
+Wed Jan 31 12:50:58 2024: Starting Socket connection
+Wed Jan 31 12:50:58 2024: Dispatch Server: Accepted socket connection from client
+Wed Jan 31 12:50:58 2024: Starting Socket connection
+Wed Jan 31 12:50:58 2024: Dispatch Server: Accepted socket connection from client
+Wed Jan 31 12:50:58 2024: Starting Socket connection
+Wed Jan 31 12:50:58 2024: Dispatch Server: Accepted socket connection from client
+Wed Jan 31 12:50:58 2024: Starting Socket connection
+Wed Jan 31 12:50:58 2024: Dispatch Server: Accepted socket connection from client
+Wed Jan 31 12:50:58 2024: Starting Socket connection
+Wed Jan 31 12:52:53 2024: Dispatch Server: Accepted socket connection from client
+Wed Jan 31 12:52:53 2024: Starting Socket connection
+Wed Jan 31 12:53:50 2024: Dispatch Server: Accepted socket connection from client
+Wed Jan 31 12:53:50 2024: Starting Socket connection
+Wed Jan 31 12:54:57 2024: Dispatch Server: Accepted socket connection from client
+Wed Jan 31 12:54:57 2024: Starting Socket connection
+Wed Jan 31 14:10:05 2024: SESSION_MGR: closing session for UUID '39c30739-018a-446a-8e67-3186ed4310bc' with name 'v++_link_mmul_kernel_0'
+Wed Jan 31 14:10:05 2024: KERNEL_SVC: closing session for UUID '39c30739-018a-446a-8e67-3186ed4310bc' with name 'v++_link_mmul_kernel_0'
+Wed Jan 31 14:10:05 2024: GUIDANCE_SMGR: closing session for UUID '39c30739-018a-446a-8e67-3186ed4310bc' with name 'v++_link_mmul_kernel_0'
+Wed Jan 31 14:10:05 2024: SYSTEM_DIAGRAM: closing session for UUID '39c30739-018a-446a-8e67-3186ed4310bc' with name 'v++_link_mmul_kernel_0'
+Wed Jan 31 14:10:05 2024: STOP_SERVER received, server token: b12d51a5-bab4-4473-b0fa-28e13ce78eb4, passed token: b12d51a5-bab4-4473-b0fa-28e13ce78eb4
+Wed Jan 31 14:10:05 2024: Socket received request to stop server.
+Wed Jan 31 14:10:05 2024: Dispatch Server: do_await_stop
+Wed Jan 31 14:10:05 2024: Dispatch Server: stopping mainFifo_
+Wed Jan 31 14:10:05 2024: XCD main fifo: Stopping
+Wed Jan 31 14:10:05 2024: XCD main fifo: do_read error code: Operation canceled
+Wed Jan 31 14:10:05 2024: XCD main fifo: bytes_transferred: 0
+Wed Jan 31 14:10:05 2024: SERVER: destructor for server bound to port 37403
+Wed Jan 31 14:10:05 2024: XCD main fifo: Good unlink of /tmp/xcdmainb12d51a5-bab4-4473-b0fa-28e13ce78eb4
+Wed Jan 31 14:10:05 2024: Server exiting with status 0.
+Wed Jan 31 14:10:05 2024: Closing log file.

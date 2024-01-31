@@ -1,0 +1,55 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+----------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2022.2 (lin64) Build 3671981 Fri Oct 14 04:59:54 MDT 2022
+| Date         : Tue Jan 30 19:23:06 2024
+| Host         : amin-iot running 64-bit Ubuntu 18.04 LTS
+| Command      : report_utilization -hierarchical -hierarchical_depth 3 -file util_slr.report
+| Design       : level0_wrapper
+| Device       : xcu280-fsvh2892-2L-e
+| Speed File   : -2L
+| Design State : Routed
+----------------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. Utilization by Hierarchy
+
+1. Utilization by Hierarchy
+---------------------------
+
++-----------------------------------------------------------+-----------------------------------------------------------+----------------+--------------+------------+------------+---------+------+--------+--------+--------+------+------------+
+|                          Instance                         |                           Module                          |  PR Attribute  | Total PPLOCs | Total LUTs | Logic LUTs | LUTRAMs | SRLs |   FFs  | RAMB36 | RAMB18 | URAM | DSP Blocks |
++-----------------------------------------------------------+-----------------------------------------------------------+----------------+--------------+------------+------------+---------+------+--------+--------+--------+------+------------+
+| level0_wrapper                                            |                                                     (top) |              - |          261 |     135465 |     123585 |    6940 | 4940 | 188328 |    226 |     22 |    0 |         86 |
+|   (level0_wrapper)                                        |                                                     (top) |              - |            - |          0 |          0 |       0 |    0 |      0 |      0 |      0 |    0 |          0 |
+|   level0_i                                                |                                                    level0 |              - |            - |     135465 |     123585 |    6940 | 4940 | 188328 |    226 |     22 |    0 |         86 |
+|     blp                                                   |                                               blp_wrapper |         Static |            - |     106153 |     100176 |    4564 | 1413 | 129945 |    193 |      5 |    0 |          4 |
+|       (blp)                                               |                                               blp_wrapper |         Static |            - |          0 |          0 |       0 |    0 |      0 |      0 |      0 |    0 |          0 |
+|       blp_i                                               |                                                       blp |         Static |            - |     106153 |     100176 |    4564 | 1413 | 129945 |    193 |      5 |    0 |          4 |
+|     ii_level0_pipe                                        |                                   level0_ii_level0_pipe_0 |         Static |            - |       1482 |       1482 |       0 |    0 |   6141 |      0 |      0 |    0 |          0 |
+|       inst                                                |                    level0_ii_level0_pipe_0_ii_level0_pipe |         Static |            - |       1482 |       1482 |       0 |    0 |   6141 |      0 |      0 |    0 |          0 |
+|     ulp                                                   |                                                       ulp | Reconfigurable |          261 |      27836 |      21933 |    2376 | 3527 |  52242 |     33 |     17 |    0 |         82 |
+|       (ulp)                                               |                                                       ulp | Reconfigurable |            - |       1560 |       1560 |       0 |    0 |      0 |      0 |      0 |    0 |          0 |
+|       SLR0                                                |                                       ulp_SLR0_imp_NYMDU0 | Reconfigurable |            - |        392 |        392 |       0 |    0 |   1411 |      0 |      0 |    0 |          0 |
+|       SLR1                                                |                                      ulp_SLR1_imp_1UA2LF1 | Reconfigurable |            - |        209 |        209 |       0 |    0 |    790 |      0 |      0 |    0 |          0 |
+|       SLR2                                                |                                      ulp_SLR2_imp_1Y0I5MR | Reconfigurable |            - |        207 |        207 |       0 |    0 |    790 |      0 |      0 |    0 |          0 |
+|       axi_ic_ctrl_mgmt_slr1                               |                               ulp_axi_ic_ctrl_mgmt_slr1_0 | Reconfigurable |            - |        121 |        121 |       0 |    0 |    119 |      0 |      0 |    0 |          0 |
+|       axi_vip_data                                        |                                        ulp_axi_vip_data_0 | Reconfigurable |            - |          0 |          0 |       0 |    0 |      0 |      0 |      0 |    0 |          0 |
+|       hmss_0                                              |                                              ulp_hmss_0_0 | Reconfigurable |            - |       8406 |       4982 |    2120 | 1304 |  22542 |      2 |      0 |    0 |          0 |
+|       ii_level0_wire                                      |                                      ulp_ii_level0_wire_0 | Reconfigurable |            - |          0 |          0 |       0 |    0 |      0 |      0 |      0 |    0 |          0 |
+|       ii_level0_wire_ulp_s_irq_cu_00_1_interrupt_concat   |   ulp_ii_level0_wire_ulp_s_irq_cu_00_1_interrupt_concat_0 | Reconfigurable |            - |          0 |          0 |       0 |    0 |      0 |      0 |      0 |    0 |          0 |
+|       ii_level0_wire_ulp_s_irq_cu_00_1_interrupt_concat_0 | ulp_ii_level0_wire_ulp_s_irq_cu_00_1_interrupt_concat_0_0 | Reconfigurable |            - |          0 |          0 |       0 |    0 |      0 |      0 |      0 |    0 |          0 |
+|       mmul_kernel_0_1                                     |                                     ulp_mmul_kernel_0_1_0 | Reconfigurable |            - |      11915 |       9460 |     256 | 2199 |  18394 |     31 |     17 |    0 |         82 |
+|       proc_sys_reset_ctrl_slr0                            |                            ulp_proc_sys_reset_ctrl_slr0_0 | Reconfigurable |            - |         14 |         13 |       0 |    1 |     33 |      0 |      0 |    0 |          0 |
+|       proc_sys_reset_ctrl_slr1                            |                            ulp_proc_sys_reset_ctrl_slr1_0 | Reconfigurable |            - |         16 |         15 |       0 |    1 |     33 |      0 |      0 |    0 |          0 |
+|       proc_sys_reset_ctrl_slr2                            |                            ulp_proc_sys_reset_ctrl_slr2_0 | Reconfigurable |            - |         16 |         15 |       0 |    1 |     33 |      0 |      0 |    0 |          0 |
+|       proc_sys_reset_kernel_slr0                          |                          ulp_proc_sys_reset_kernel_slr0_0 | Reconfigurable |            - |         17 |         16 |       0 |    1 |     37 |      0 |      0 |    0 |          0 |
+|       satellite_gpio_slice_1                              |                              ulp_satellite_gpio_slice_1_0 | Reconfigurable |            - |          0 |          0 |       0 |    0 |      0 |      0 |      0 |    0 |          0 |
+|       ulp_cmp                                             |                                             ulp_ulp_cmp_0 | Reconfigurable |            - |        473 |        473 |       0 |    0 |    670 |      0 |      0 |    0 |          0 |
+|       ulp_ucs                                             |                                             ulp_ulp_ucs_0 | Reconfigurable |            - |       4497 |       4477 |       0 |   20 |   7390 |      0 |      0 |    0 |          0 |
++-----------------------------------------------------------+-----------------------------------------------------------+----------------+--------------+------------+------------+---------+------+--------+--------+--------+------+------------+
+* Note: The sum of lower-level cells may be larger than their parent cells total, due to cross-hierarchy LUT combining
+
+

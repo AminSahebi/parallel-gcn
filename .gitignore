@@ -35,6 +35,8 @@
 *.npy
 *.tgz
 *.txt
+*.v++
+*.log
 *.svmlight
 *.graph
 *.split
