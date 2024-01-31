@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <cmath>
 #include <immintrin.h>
+#include "globals.h"
+#include <fstream>
 //#include <CL/cl2.hpp>
 
 
@@ -11,33 +13,90 @@
 #include <omp.h>
 #endif
 
+
+	static void
+throw_if_error(cl_int errcode, const char* msg=nullptr)
+{
+	if (!errcode)
+		return;
+	std::string err = "errcode '";
+	err.append(std::to_string(errcode)).append("'");
+	if (msg)
+		err.append(" ").append(msg);
+	throw std::runtime_error(err);
+}
+
+
+
 // In the constructor definition
 Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p)
-    : a(a), b(b), c(c), m(m), n(n), p(p) {  // Use the provided devices parameter
+	: a(a), b(b), c(c), m(m), n(n), p(p) {  // Use the provided devices parameter
 
 
-	bufferA = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-			sizeof(float) * m * n, a->data.data());
-	bufferB = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-			sizeof(float) * n * p, b->data.data());
-	bufferC = cl::Buffer(context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
-			sizeof(float) * m * p, c->data.data());
+		cl_int err = CL_SUCCESS;
+		cl_int status = CL_SUCCESS;
 
-	kernel.setArg(0, bufferA);
-	kernel.setArg(1, bufferB);
-	kernel.setArg(2, bufferC);
-}
+		cl_platform_id platform = nullptr;
+		throw_if_error(clGetPlatformIDs(1,&platform,nullptr));
+
+		cl_uint num_devices = 0;
+		throw_if_error(clGetDeviceIDs(platform,CL_DEVICE_TYPE_ACCELERATOR,0,nullptr,&num_devices));
+		throw_if_error(num_devices==0,"no devices");
+
+		std::vector<cl_device_id> devices(num_devices);
+
+		throw_if_error(clGetDeviceIDs(platform,CL_DEVICE_TYPE_ACCELERATOR,num_devices,devices.data(),nullptr));
+
+		cl_device_id device = devices.front();
+
+		cl_context context = clCreateContext(0,1,&device,nullptr,nullptr,&err);
+
+		throw_if_error(err);
+
+		/*cl_command_queue */queue = clCreateCommandQueue(context,device,CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,&err);
+
+		throw_if_error(err,"failed to create command queue");
+
+		std::ifstream stream(fnm);
+
+		stream.seekg(0,stream.end);
+		size_t size = stream.tellg();
+
+		stream.seekg(0,stream.beg);
+		std::vector<char> xclbin(size);
+		stream.read(xclbin.data(),size);
+
+		const unsigned char* Data = reinterpret_cast<unsigned char*>(xclbin.data());
+		cl_program program = clCreateProgramWithBinary(context,1,&device,&size,&Data,&status,&err);
+		throw_if_error(err,"failed to create program");
+		printf("FPGA program done successfully!\n");
+
+		//Create Kernels
+		krnl = clCreateKernel(program,"mmul_kernel_0",&err);
+		throw_if_error(err,"failed to allocate kernel");	
+		bufferA = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+				sizeof(float) * m * n, a->data.data(),&err);
+		bufferB = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+				sizeof(float) * n * p, b->data.data(),&err);
+		bufferC = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
+				sizeof(float) * m * p, c->data.data(),&err);
+
+		clSetKernelArg(krnl, 0, sizeof(cl_mem) ,&bufferA);
+		clSetKernelArg(krnl, 1, sizeof(cl_mem) ,&bufferB);
+		clSetKernelArg(krnl, 2, sizeof(cl_mem) ,&bufferC);
+	}
 
 void Matmul::forward(bool training) {
 	timer_start(TMR_MATMUL_FW);
+	cl_event write_event;
+	cl_event ev_kernel_done;
+	cl_event read_done;
 
+	cl_mem mems[3] = {bufferA,bufferB, bufferC};
+	clEnqueueMigrateMemObjects(queue,3,mems,0,0,nullptr,&write_event);
 
-	// Enqueue kernel for execution
-	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(m, p));
-
-	// Read the result back from the device
-	queue.enqueueReadBuffer(bufferC, CL_TRUE, 0, sizeof(float) * m * p, c->data.data());
-
+	clEnqueueTask(queue,krnl,1,&write_event,&ev_kernel_done);
+	clEnqueueMigrateMemObjects(queue,1,&bufferC,CL_MIGRATE_MEM_OBJECT_HOST,1,&ev_kernel_done,&read_done);
 	timer_stop(TMR_MATMUL_FW);
 }
 

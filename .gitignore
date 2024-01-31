@@ -41,7 +41,9 @@
 _x/
 .ipcache/
 /reddit
+/src/SW/data
 /src/SW/reddit
+/src/FPGA/data
 /data
 /.vscode
 /gcn-*
