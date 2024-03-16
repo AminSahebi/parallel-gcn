@@ -1,6 +1,6 @@
 #include <hls_stream.h>
 
-#define BLOCK_SIZE 16
+#define BLOCK_SIZE 512
 extern "C" {
 
 	void mmul_kernel_0(

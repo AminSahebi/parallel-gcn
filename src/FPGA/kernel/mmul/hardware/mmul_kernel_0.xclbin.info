@@ -11,7 +11,7 @@ xclbin Information
    Kernels:                mmul_kernel_0
    Signature:              
    Content:                Bitstream
-   UUID (xclbin):          a20d3de5-9906-9912-26cc-40ae7a2cb9e8
+   UUID (xclbin):          58376a06-227e-0952-bcdf-1ff75ca27087
    UUID (IINTF):           fb2b2c5a19ed63593fea95f51fbc8eb9
    Sections:               BITSTREAM, MEM_TOPOLOGY, IP_LAYOUT, CONNECTIVITY, 
                            CLOCK_FREQ_TOPOLOGY, BUILD_METADATA, 
@@ -49,7 +49,7 @@ Scalable Clocks
    Name:      DATA_CLK
    Index:     2
    Type:      DATA
-   Frequency: 300 MHz
+   Frequency: 231 MHz
 
 System Clocks
 ------
@@ -57,7 +57,7 @@ System Clocks
    Type:           SCALABLE 
    Default Freq:   300 MHz
    Requested Freq: 300 MHz
-   Achieved Freq:  300 MHz
+   Achieved Freq:  231.4 MHz
 
    Name:           ulp_ucs_aclk_kernel_01 
    Type:           SCALABLE 
