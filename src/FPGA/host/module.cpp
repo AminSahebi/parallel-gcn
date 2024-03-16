@@ -14,7 +14,8 @@
 #endif
 
 
-#define BLOCK_SIZE 16
+#define BLOCK_SIZE 512 //do not change this otherwise change the kernel as well
+
 	static void
 throw_if_error(cl_int errcode, const char* msg=nullptr)
 {
@@ -52,6 +53,7 @@ Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p)
 
 		throw_if_error(err);
 
+
 		queue = clCreateCommandQueue(context,device,CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,&err);
 
 		throw_if_error(err,"failed to create command queue");
@@ -71,53 +73,116 @@ Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p)
 		throw_if_error(err,"failed to create program");
 		printf("FPGA program done successfully!\n");
 
-		//Create Kernels
 		krnl = clCreateKernel(program,"mmul_kernel_0",&err);
 		throw_if_error(err,"failed to allocate kernel");	
 
+		std::vector<float, aligned_allocator<float>> hostA(m * n);
+		std::vector<float, aligned_allocator<float>> hostB(n * p);
+		std::vector<float, aligned_allocator<float>> hostC(m * p);
+
+		// Copy data to aligned buffers
+		std::copy(a->data.data(), a->data.data() + m * n, hostA.data());
+		std::copy(b->data.data(), b->data.data() + n * p, hostB.data());
+		std::copy(c->data.data(), c->data.data() + m * p, hostC.data());
+
 		bufferA = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-				sizeof(float) * m * n, a->data.data(),&err);
+				sizeof(float) * m * n, hostA.data(), &err);
 		bufferB = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-				sizeof(float) * n * p, b->data.data(),&err);
+				sizeof(float) * n * p, hostB.data(), &err);
 		bufferC = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
-				sizeof(float) * m * p, c->data.data(),&err);
+				sizeof(float) * m * p, hostC.data(), &err);
 
-		//		clSetKernelArg(krnl, 0, sizeof(cl_mem) ,&bufferA);
-		//		clSetKernelArg(krnl, 1, sizeof(cl_mem) ,&bufferB);
-		//		clSetKernelArg(krnl, 2, sizeof(cl_mem) ,&bufferC);
+		//	throw_if_error(bufferA == nullptr, "Failed to allocate bufferA");
+		//	throw_if_error(bufferB == nullptr, "Failed to allocate bufferB");
+		//	throw_if_error(bufferC == nullptr, "Failed to allocate bufferC");
+		clSetKernelArg(krnl, 0, sizeof(cl_mem), &bufferA);
+		clSetKernelArg(krnl, 1, sizeof(cl_mem), &bufferB);
+		clSetKernelArg(krnl, 2, sizeof(cl_mem), &bufferC);
+		//		printf("set arguments for buffer A, B and C is called!\n");
+		//		printf("buffers A,B, and C created successfully!\n");
 	}
+/*
+   void Matmul::forward(bool training) {
+   timer_start(TMR_MATMUL_FW);
+   cl_event write_event;
+   cl_event ev_kernel_done;
+   cl_event read_done;
 
+//	printf("matmul forward is called!\n");
+cl_mem mems[3] = {bufferA, bufferB, bufferC};
+clEnqueueMigrateMemObjects(queue, 3, mems, 0, 0, nullptr, &write_event);
+//	printf("clEnqueueMigrateMemObjects is called!\n");
+
+for (int bi = 0; bi < m; bi += BLOCK_SIZE) {
+for (int bj = 0; bj < p; bj += BLOCK_SIZE) {
+for (int bk = 0; bk < n; bk += BLOCK_SIZE) {
+// Calculate actual block sizes for this iteration
+int current_block_size_i = std::min(BLOCK_SIZE, m - bi);
+int current_block_size_j = std::min(BLOCK_SIZE, p - bj);
+int current_block_size_k = std::min(BLOCK_SIZE, n - bk);
+
+// Set kernel arguments
+clSetKernelArg(krnl, 3, sizeof(int), &bi);  // Pass block indices as additional arguments
+clSetKernelArg(krnl, 4, sizeof(int), &bj);
+clSetKernelArg(krnl, 5, sizeof(int), &bk);
+clSetKernelArg(krnl, 6, sizeof(int), &current_block_size_i);
+clSetKernelArg(krnl, 7, sizeof(int), &current_block_size_j);
+clSetKernelArg(krnl, 8, sizeof(int), &current_block_size_k);
+
+// Enqueue the kernel for each block
+size_t global_size[2] = {static_cast<size_t>(current_block_size_i), static_cast<size_t>(current_block_size_j)};
+size_t local_size[2] = {1, 1};
+clEnqueueNDRangeKernel(queue, krnl, 2, nullptr, global_size, local_size, 0, nullptr, nullptr);
+}
+}
+}
+
+clEnqueueMigrateMemObjects(queue, 1, &bufferC, CL_MIGRATE_MEM_OBJECT_HOST, 1, &write_event, &read_done);
+
+// Release events after they are no longer needed
+clReleaseEvent(write_event);
+clReleaseEvent(read_done);
+
+timer_stop(TMR_MATMUL_FW);
+}
+*/
+/*
 void Matmul::forward(bool training) {
 	timer_start(TMR_MATMUL_FW);
 	cl_event write_event;
 	cl_event ev_kernel_done;
 	cl_event read_done;
 
-	cl_mem mems[3] = {bufferA,bufferB, bufferC};
-	clEnqueueMigrateMemObjects(queue,3,mems,0,0,nullptr,&write_event);
+	cl_mem mems[3] = {bufferA, bufferB, bufferC};
+	clEnqueueMigrateMemObjects(queue, 3, mems, 0, 0, nullptr, &write_event);
 
+	// Calculate the number of blocks needed to cover the entire matrix
+	int num_blocks_i = (m + BLOCK_SIZE - 1) / BLOCK_SIZE;
+	int num_blocks_j = (p + BLOCK_SIZE - 1) / BLOCK_SIZE;
+	int num_blocks_k = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-	//	clEnqueueTask(queue,krnl,1,&write_event,&ev_kernel_done);
-	for (int bi = 0; bi < m; bi += BLOCK_SIZE) {
-		for (int bj = 0; bj < p; bj += BLOCK_SIZE) {
-			for (int bk = 0; bk < n; bk += BLOCK_SIZE) {
-				// Calculate actual block sizes for this iteration
-				int current_block_size_i = std::min(BLOCK_SIZE, m - bi);
-				int current_block_size_j = std::min(BLOCK_SIZE, p - bj);
-				int current_block_size_k = std::min(BLOCK_SIZE, n - bk);
+	for (int block_i = 0; block_i < num_blocks_i; block_i++) {
+		int bi = block_i * BLOCK_SIZE;
+		int current_block_size_i = (bi + BLOCK_SIZE <= m) ? BLOCK_SIZE : (m - bi);
 
-				// Set kernel arguments
+		for (int block_j = 0; block_j < num_blocks_j; block_j++) {
+			int bj = block_j * BLOCK_SIZE;
+			int current_block_size_j = (bj + BLOCK_SIZE <= p) ? BLOCK_SIZE : (p - bj);
+
+			for (int block_k = 0; block_k < num_blocks_k; block_k++) {
+				int bk = block_k * BLOCK_SIZE;
+				int current_block_size_k = (bk + BLOCK_SIZE <= n) ? BLOCK_SIZE : (n - bk);
+
 				clSetKernelArg(krnl, 0, sizeof(cl_mem), &bufferA);
 				clSetKernelArg(krnl, 1, sizeof(cl_mem), &bufferB);
 				clSetKernelArg(krnl, 2, sizeof(cl_mem), &bufferC);
-				clSetKernelArg(krnl, 3, sizeof(int), &bi);  // Pass block indices as additional arguments
+				clSetKernelArg(krnl, 3, sizeof(int), &bi);
 				clSetKernelArg(krnl, 4, sizeof(int), &bj);
 				clSetKernelArg(krnl, 5, sizeof(int), &bk);
 				clSetKernelArg(krnl, 6, sizeof(int), &current_block_size_i);
 				clSetKernelArg(krnl, 7, sizeof(int), &current_block_size_j);
 				clSetKernelArg(krnl, 8, sizeof(int), &current_block_size_k);
 
-				// Enqueue the kernel for each block
 				size_t global_size[2] = {static_cast<size_t>(current_block_size_i), static_cast<size_t>(current_block_size_j)};
 				size_t local_size[2] = {1, 1};
 				clEnqueueNDRangeKernel(queue, krnl, 2, nullptr, global_size, local_size, 0, nullptr, nullptr);
@@ -125,16 +190,68 @@ void Matmul::forward(bool training) {
 		}
 	}
 
-	clEnqueueMigrateMemObjects(queue,1,&bufferC,CL_MIGRATE_MEM_OBJECT_HOST,1,&ev_kernel_done,&read_done);
+	clEnqueueMigrateMemObjects(queue, 1, &bufferC, CL_MIGRATE_MEM_OBJECT_HOST, 1, &ev_kernel_done, &read_done);
 
 	clReleaseEvent(write_event);
 	clReleaseEvent(ev_kernel_done);
 	timer_stop(TMR_MATMUL_FW);
 }
+*/
 
+void Matmul::forward(bool training) {
+    timer_start(TMR_MATMUL_FW);
+    cl_event write_event = nullptr;
+    cl_event read_done = nullptr;
+	cl_int err;
 
+    cl_mem mems[3] = {bufferA, bufferB, bufferC};
+    clEnqueueMigrateMemObjects(queue, 3, mems, 0, 0, nullptr, &write_event);
 
+    // Calculate the number of blocks needed to cover the entire matrix
+    int num_blocks_i = (m + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    int num_blocks_j = (p + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    int num_blocks_k = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
+    for (int block_i = 0; block_i < num_blocks_i; block_i++) {
+        int bi = block_i * BLOCK_SIZE;
+        int current_block_size_i = (bi + BLOCK_SIZE <= m) ? BLOCK_SIZE : (m - bi);
+
+        for (int block_j = 0; block_j < num_blocks_j; block_j++) {
+            int bj = block_j * BLOCK_SIZE;
+            int current_block_size_j = (bj + BLOCK_SIZE <= p) ? BLOCK_SIZE : (p - bj);
+
+            for (int block_k = 0; block_k < num_blocks_k; block_k++) {
+                int bk = block_k * BLOCK_SIZE;
+                int current_block_size_k = (bk + BLOCK_SIZE <= n) ? BLOCK_SIZE : (n - bk);
+
+                clSetKernelArg(krnl, 0, sizeof(cl_mem), &bufferA);
+                clSetKernelArg(krnl, 1, sizeof(cl_mem), &bufferB);
+                clSetKernelArg(krnl, 2, sizeof(cl_mem), &bufferC);
+                clSetKernelArg(krnl, 3, sizeof(int), &bi);  
+                clSetKernelArg(krnl, 4, sizeof(int), &bj);
+                clSetKernelArg(krnl, 5, sizeof(int), &bk);
+                clSetKernelArg(krnl, 6, sizeof(int), &current_block_size_i);
+                clSetKernelArg(krnl, 7, sizeof(int), &current_block_size_j);
+                clSetKernelArg(krnl, 8, sizeof(int), &current_block_size_k);
+
+                // Enqueue the kernel using enqueueTask
+
+		size_t global_size[2] = {static_cast<size_t>(current_block_size_i), static_cast<size_t>(current_block_size_j)};
+                size_t local_size[2] = {1, 1};
+                clEnqueueNDRangeKernel(queue, krnl, 2, nullptr, global_size, local_size, 0, nullptr, nullptr);
+            }
+        }
+    }
+
+    // Wait for memory migration to complete
+    clWaitForEvents(1, &write_event);
+
+    // Release events after they are no longer needed
+    if (write_event != nullptr)
+        clReleaseEvent(write_event);
+
+    timer_stop(TMR_MATMUL_FW);
+}
 
 /*
    Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p) :

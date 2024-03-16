@@ -13,7 +13,7 @@
 #define BLOCKED
 
 
-#ifdef BLOCKED
+//#ifdef BLOCKED
 #define BLOCK_SIZE 16
 
 //Helper function for blocked matrix multiplication
@@ -32,7 +32,7 @@ void block_mmul(const float* A, const float* B, float* C, int block_size, int ld
 
 Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p) :
 	a(a), b(b), c(c), m(m), n(n), p(p) {}
-
+/*
 	void Matmul::forward(bool training) {
 		timer_start(TMR_MATMUL_FW);
 		c->zero();
@@ -54,7 +54,21 @@ Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p) :
 		timer_stop(TMR_MATMUL_FW);
 	}
 
-
+*/
+void Matmul::forward(bool training) {
+    timer_start(TMR_MATMUL_FW);
+    c->zero();
+#pragma omp parallel for schedule(static)
+    for (int i = 0; i < m; i++)
+        for (int j = 0; j < n; j++) {
+#ifdef SIMD
+#pragma omp simd
+#endif
+            for (int k = 0; k < p; k++)
+                c->data[i * p + k] += a->data[i * n + j] * b->data[j * p + k];
+        }
+    timer_stop(TMR_MATMUL_FW);
+}
 /*
 void Matmul::backward() {
     timer_start(TMR_MATMUL_BW);
@@ -94,7 +108,7 @@ void Matmul::backward() {
             b->grad[i] += b->local_grad[thread][i];
     timer_stop(TMR_MATMUL_BW);
 }
-*/
+
 
 void Matmul::backward() {
     timer_start(TMR_MATMUL_BW);
@@ -138,10 +152,11 @@ void Matmul::backward() {
 #endif
 
 
+*/
 
+//#ifndef BLOCKED
+/*
 
-
-#ifndef BLOCKED
 Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p) :
 	a(a), b(b), c(c), m(m), n(n), p(p) {}
 
@@ -161,6 +176,7 @@ Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p) :
 		timer_stop(TMR_MATMUL_FW);
 	}
 
+*/
 void Matmul::backward() {
 	timer_start(TMR_MATMUL_BW);
 	a->zero_grad();
@@ -196,8 +212,7 @@ void Matmul::backward() {
 }
 
 
-#endif
-
+//#endif
 
 SparseMatmul::SparseMatmul(Variable *a, Variable *b, Variable *c, SparseIndex *sp, int m, int n, int p) :
 	a(a), b(b), c(c), sp(sp), m(m), n(n), p(p) {}
