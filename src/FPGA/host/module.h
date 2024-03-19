@@ -103,7 +103,7 @@ class Matmul : public Module {
 	//      cl_int err;              // Declare here
 	//   unsigned fileBufSize;    // Declare here
 	//cl::Context context;  // Add context as a member variable
-
+	cl_context context;
 	//cl::CommandQueue queue;  // Declare queue as a member
 	cl_command_queue queue = nullptr;
 
