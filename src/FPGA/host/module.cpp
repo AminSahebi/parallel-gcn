@@ -14,7 +14,8 @@
 #endif
 
 
-#define BLOCK_SIZE 16
+#define BLOCK_SIZE 512 //do not change this otherwise change the kernel as well
+
 	static void
 throw_if_error(cl_int errcode, const char* msg=nullptr)
 {
@@ -48,9 +49,10 @@ Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p)
 
 		cl_device_id device = devices.front();
 
-		cl_context context = clCreateContext(0,1,&device,nullptr,nullptr,&err);
+		context = clCreateContext(0,1,&device,nullptr,nullptr,&err);
 
 		throw_if_error(err);
+
 
 		queue = clCreateCommandQueue(context,device,CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,&err);
 
@@ -71,70 +73,118 @@ Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p)
 		throw_if_error(err,"failed to create program");
 		printf("FPGA program done successfully!\n");
 
-		//Create Kernels
 		krnl = clCreateKernel(program,"mmul_kernel_0",&err);
 		throw_if_error(err,"failed to allocate kernel");	
 
-		bufferA = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-				sizeof(float) * m * n, a->data.data(),&err);
-		bufferB = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-				sizeof(float) * n * p, b->data.data(),&err);
-		bufferC = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
-				sizeof(float) * m * p, c->data.data(),&err);
 
-		//		clSetKernelArg(krnl, 0, sizeof(cl_mem) ,&bufferA);
-		//		clSetKernelArg(krnl, 1, sizeof(cl_mem) ,&bufferB);
-		//		clSetKernelArg(krnl, 2, sizeof(cl_mem) ,&bufferC);
+
 	}
 
 void Matmul::forward(bool training) {
 	timer_start(TMR_MATMUL_FW);
-	cl_event write_event;
 	cl_event ev_kernel_done;
-	cl_event read_done;
+	cl_event write_event = nullptr;
+	cl_event read_done = nullptr;
+	cl_int err;
 
-	cl_mem mems[3] = {bufferA,bufferB, bufferC};
-	clEnqueueMigrateMemObjects(queue,3,mems,0,0,nullptr,&write_event);
+	std::vector<float, aligned_allocator<float>> hostA(m * n);
+	std::vector<float, aligned_allocator<float>> hostB(n * p);
+	std::vector<float, aligned_allocator<float>> hostC(m * p);
+
+	// Copy data from matrix 'a' to hostA
+	for (int i = 0; i < m; ++i) {
+		for (int j = 0; j < n; ++j) {
+			hostA[i * n + j] = a->data[i * n + j];
+		}
+	}
+
+	// Copy data from matrix 'b' to hostB
+	for (int i = 0; i < n; ++i) {
+		for (int j = 0; j < p; ++j) {
+			hostB[i * p + j] = b->data[i * p + j];
+		}
+	}
+
+	// Copy data from matrix 'c' to hostC
+	for (int i = 0; i < m; ++i) {
+		for (int j = 0; j < p; ++j) {
+			hostC[i * p + j] = c->data[i * p + j];
+		}
+	}
+
+	/*
+	// Copy data to aligned buffers
+	std::copy(a->data.begin(), a->data.end(), hostA.data());
+	std::copy(b->data.begin(), b->data.end(), hostB.data());
+	std::copy(c->data.begin(), c->data.end(), hostC.data());
+	*/
+
+	bufferA = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+			sizeof(float) * m * n , hostA.data(), &err);
+	bufferB = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+			sizeof(float) * n * p , hostB.data(), &err);
+	bufferC = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
+			sizeof(float) * m * p, hostC.data(), &err);
 
 
-	//	clEnqueueTask(queue,krnl,1,&write_event,&ev_kernel_done);
-	for (int bi = 0; bi < m; bi += BLOCK_SIZE) {
-		for (int bj = 0; bj < p; bj += BLOCK_SIZE) {
-			for (int bk = 0; bk < n; bk += BLOCK_SIZE) {
-				// Calculate actual block sizes for this iteration
-				int current_block_size_i = std::min(BLOCK_SIZE, m - bi);
-				int current_block_size_j = std::min(BLOCK_SIZE, p - bj);
-				int current_block_size_k = std::min(BLOCK_SIZE, n - bk);
 
-				// Set kernel arguments
+	cl_mem mems[3] = {bufferA, bufferB, bufferC};
+	clEnqueueMigrateMemObjects(queue, 3, mems, 0, 0, nullptr, &write_event);
+
+	// Calculate the number of blocks needed to cover the entire matrix
+	int num_blocks_i = (m + BLOCK_SIZE - 1) / BLOCK_SIZE;
+	int num_blocks_j = (p + BLOCK_SIZE - 1) / BLOCK_SIZE;
+	int num_blocks_k = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+
+	for (int block_i = 0; block_i < num_blocks_i; block_i++) {
+		int bi = block_i * BLOCK_SIZE;
+		int current_block_size_i = (bi + BLOCK_SIZE <= m) ? BLOCK_SIZE : (m - bi);
+
+		for (int block_j = 0; block_j < num_blocks_j; block_j++) {
+			int bj = block_j * BLOCK_SIZE;
+			int current_block_size_j = (bj + BLOCK_SIZE <= p) ? BLOCK_SIZE : (p - bj);
+
+			for (int block_k = 0; block_k < num_blocks_k; block_k++) {
+				int bk = block_k * BLOCK_SIZE;
+				int current_block_size_k = (bk + BLOCK_SIZE <= n) ? BLOCK_SIZE : (n - bk);
+
+
 				clSetKernelArg(krnl, 0, sizeof(cl_mem), &bufferA);
 				clSetKernelArg(krnl, 1, sizeof(cl_mem), &bufferB);
 				clSetKernelArg(krnl, 2, sizeof(cl_mem), &bufferC);
-				clSetKernelArg(krnl, 3, sizeof(int), &bi);  // Pass block indices as additional arguments
+				clSetKernelArg(krnl, 3, sizeof(int), &bi);  
 				clSetKernelArg(krnl, 4, sizeof(int), &bj);
 				clSetKernelArg(krnl, 5, sizeof(int), &bk);
 				clSetKernelArg(krnl, 6, sizeof(int), &current_block_size_i);
 				clSetKernelArg(krnl, 7, sizeof(int), &current_block_size_j);
 				clSetKernelArg(krnl, 8, sizeof(int), &current_block_size_k);
 
-				// Enqueue the kernel for each block
+				// Enqueue the kernel using enqueueTask
 				size_t global_size[2] = {static_cast<size_t>(current_block_size_i), static_cast<size_t>(current_block_size_j)};
 				size_t local_size[2] = {1, 1};
+
+				/*   cl_int clEnqueueNDRangeKernel(cl_command_queue command_queue, cl_kernel kernel,
+				     cl_uint work_dim, const size_t *global_work_offset,
+				     const size_t *global_work_size,
+				     const size_t *local_work_size,
+				     cl_uint num_events_in_wait_list,
+				     const cl_event *event_wait_list, cl_event *event);
+				     */
 				clEnqueueNDRangeKernel(queue, krnl, 2, nullptr, global_size, local_size, 0, nullptr, nullptr);
 			}
 		}
 	}
 
-	clEnqueueMigrateMemObjects(queue,1,&bufferC,CL_MIGRATE_MEM_OBJECT_HOST,1,&ev_kernel_done,&read_done);
+	//	clEnqueueMigrateMemObjects(queue,1,&bufferC,CL_MIGRATE_MEM_OBJECT_HOST,1,&ev_kernel_done,&read_done);
+	// Wait for memory migration to complete
+	clWaitForEvents(1, &write_event);
+	// Release events after they are no longer needed
+	if (write_event != nullptr)
+		clReleaseEvent(write_event);
 
-	clReleaseEvent(write_event);
-	clReleaseEvent(ev_kernel_done);
 	timer_stop(TMR_MATMUL_FW);
 }
-
-
-
-
 
 /*
    Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p) :

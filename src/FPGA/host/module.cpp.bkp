@@ -4,180 +4,207 @@
 #include <cstdlib>
 #include <cmath>
 #include <immintrin.h>
+#include "globals.h"
+#include <fstream>
+//#include <CL/cl2.hpp>
 
 
 #ifdef OMP
 #include <omp.h>
 #endif
 
-#define BLOCKED
 
+#define BLOCK_SIZE 512 //do not change this otherwise change the kernel as well
 
-//#ifdef BLOCKED
-#define BLOCK_SIZE 16
-
-//Helper function for blocked matrix multiplication
-void block_mmul(const float* A, const float* B, float* C, int block_size, int lda, int ldb, int ldc) {
-//	#pragma omp parallel for schedule(static) // Use collapse(2) for parallelizing nested loops
-//#pragma omp parallel for
-	for (int i = 0; i < block_size; i++) {
-		for (int j = 0; j < block_size; j++) {
-			for (int k = 0; k < block_size; k++) {
-				C[i * ldc + j] += A[i * lda + k] * B[k * ldb + j];
-			}
-		}
-	}
+	static void
+throw_if_error(cl_int errcode, const char* msg=nullptr)
+{
+	if (!errcode)
+		return;
+	std::string err = "errcode '";
+	err.append(std::to_string(errcode)).append("'");
+	if (msg)
+		err.append(" ").append(msg);
+	throw std::runtime_error(err);
 }
 
 
-Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p) :
-	a(a), b(b), c(c), m(m), n(n), p(p) {}
-/*
-	void Matmul::forward(bool training) {
-		timer_start(TMR_MATMUL_FW);
-		c->zero();
-		// Loop over blocks
-		for (int bi = 0; bi < m; bi += BLOCK_SIZE) {
-			for (int bj = 0; bj < n; bj += BLOCK_SIZE) {
-				for (int bk = 0; bk < p; bk += BLOCK_SIZE) {
-					// Perform blocked matrix multiplication
-					block_mmul(
-							&a->data[bi * n], // A block
-							&b->data[bj * p + bk], // B block
-							&c->data[bi * p + bk], // C block
-							BLOCK_SIZE, n, p, p
-						  );
-				}
-			}
-		}
+Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p)
+	: a(a), b(b), c(c), m(m), n(n), p(p) { 
 
-		timer_stop(TMR_MATMUL_FW);
+		//program the FPGA 
+		cl_int err = CL_SUCCESS;
+		cl_int status = CL_SUCCESS;
+
+		cl_platform_id platform = nullptr;
+		throw_if_error(clGetPlatformIDs(1,&platform,nullptr));
+
+		cl_uint num_devices = 0;
+		throw_if_error(clGetDeviceIDs(platform,CL_DEVICE_TYPE_ACCELERATOR,0,nullptr,&num_devices));
+		throw_if_error(num_devices==0,"no devices");
+
+		std::vector<cl_device_id> devices(num_devices);
+
+		throw_if_error(clGetDeviceIDs(platform,CL_DEVICE_TYPE_ACCELERATOR,num_devices,devices.data(),nullptr));
+
+		cl_device_id device = devices.front();
+
+		cl_context context = clCreateContext(0,1,&device,nullptr,nullptr,&err);
+
+		throw_if_error(err);
+
+
+		queue = clCreateCommandQueue(context,device,CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,&err);
+
+		throw_if_error(err,"failed to create command queue");
+
+
+		std::ifstream stream(fnm);
+
+		stream.seekg(0,stream.end);
+		size_t size = stream.tellg();
+
+		stream.seekg(0,stream.beg);
+		std::vector<char> xclbin(size);
+		stream.read(xclbin.data(),size);
+
+		const unsigned char* Data = reinterpret_cast<unsigned char*>(xclbin.data());
+		cl_program program = clCreateProgramWithBinary(context,1,&device,&size,&Data,&status,&err);
+		throw_if_error(err,"failed to create program");
+		printf("FPGA program done successfully!\n");
+
+		krnl = clCreateKernel(program,"mmul_kernel_0",&err);
+		throw_if_error(err,"failed to allocate kernel");	
+
+		std::vector<double, aligned_allocator<double>> hostA(m * n);
+		std::vector<double, aligned_allocator<double>> hostB(n * p);
+		std::vector<double, aligned_allocator<double>> hostC(m * p);
+
+		// Copy data to aligned buffers
+		std::copy(a->data.data(), a->data.data() + m * n, hostA.data());
+		std::copy(b->data.data(), b->data.data() + n * p, hostB.data());
+		std::copy(c->data.data(), c->data.data() + m * p, hostC.data());
+
+// Debug prints to read values of buffer A and B
+std::cout << "Values of Buffer A:" << std::endl;
+for (int i = 0; i < 10; ++i) {
+    for (int j = 0; j < 10; ++j) {
+        std::cout << hostA[i * 10 + j] << " ";
+    }
+    std::cout << std::endl;
+}
+
+std::cout << "Values of Buffer B:" << std::endl;
+for (int i = 0; i < 10; ++i) {
+    for (int j = 0; j < 10; ++j) {
+        std::cout << hostB[i * 10 + j] << " ";
+    }
+    std::cout << std::endl;
+}
+
+
+
+		bufferA = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+				sizeof(double) * m * n, hostA.data(), &err);
+		bufferB = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+				sizeof(double) * n * p, hostB.data(), &err);
+		bufferC = clCreateBuffer(context, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR,
+				sizeof(double) * m * p, hostC.data(), &err);
+
+		//	throw_if_error(bufferA == nullptr, "Failed to allocate bufferA");
+		//	throw_if_error(bufferB == nullptr, "Failed to allocate bufferB");
+		//	throw_if_error(bufferC == nullptr, "Failed to allocate bufferC");
+		clSetKernelArg(krnl, 0, sizeof(cl_mem), &bufferA);
+		clSetKernelArg(krnl, 1, sizeof(cl_mem), &bufferB);
+		clSetKernelArg(krnl, 2, sizeof(cl_mem), &bufferC);
+		//		printf("set arguments for buffer A, B and C is called!\n");
+		//		printf("buffers A,B, and C created successfully!\n");
 	}
 
-*/
+
+
 void Matmul::forward(bool training) {
     timer_start(TMR_MATMUL_FW);
-    c->zero();
-#pragma omp parallel for schedule(static)
-    for (int i = 0; i < m; i++)
-        for (int j = 0; j < n; j++) {
-#ifdef SIMD
-#pragma omp simd
-#endif
-            for (int k = 0; k < p; k++)
-                c->data[i * p + k] += a->data[i * n + j] * b->data[j * p + k];
-        }
-    timer_stop(TMR_MATMUL_FW);
-}
-/*
-void Matmul::backward() {
-    timer_start(TMR_MATMUL_BW);
-    a->zero_grad();
-    b->zero_grad();
+    cl_event write_event = nullptr;
+    cl_event read_done = nullptr;
+	cl_int err;
 
-    // Loop over blocks
-    for (int bi = 0; bi < m; bi += BLOCK_SIZE) {
-        for (int bj = 0; bj < n; bj += BLOCK_SIZE) {
-            for (int bk = 0; bk < p; bk += BLOCK_SIZE) {
-                // Perform blocked matrix multiplication
-                block_mmul(
-                    &c->grad[bi * p + bk], // C gradient block
-                    &b->data[bj * p + bk], // B block
-                    &a->grad[bi * n], // A gradient block
-                    BLOCK_SIZE, p, p, n
-                );
+    cl_mem mems[3] = {bufferA, bufferB, bufferC};
+    clEnqueueMigrateMemObjects(queue, 3, mems, 0, 0, nullptr, &write_event);
 
-                // Update B gradients (unrolled for efficiency)
-                for (int i = 0; i < BLOCK_SIZE; i++) {
-                    for (int j = 0; j < BLOCK_SIZE; j++) {
-                        float tmp = 0;
-                        for (int k = 0; k < BLOCK_SIZE; k++) {
-                            tmp += c->grad[(bi + i) * p + bk + k] * b->data[(bj + j) * p + bk + k];
-                            b->grad[(bj + j) * p + bk + k] += c->grad[(bi + i) * p + bk + k] * a->data[(bi + i) * n + bj + j];
-                        }
-                        a->grad[(bi + i) * n + bj + j] = tmp;  // Update A gradients
-                    }
-                }
+    // Calculate the number of blocks needed to cover the entire matrix
+    int num_blocks_i = (m + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    int num_blocks_j = (p + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    int num_blocks_k = (n + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+    for (int block_i = 0; block_i < num_blocks_i; block_i++) {
+        int bi = block_i * BLOCK_SIZE;
+        int current_block_size_i = (bi + BLOCK_SIZE <= m) ? BLOCK_SIZE : (m - bi);
+
+        for (int block_j = 0; block_j < num_blocks_j; block_j++) {
+            int bj = block_j * BLOCK_SIZE;
+            int current_block_size_j = (bj + BLOCK_SIZE <= p) ? BLOCK_SIZE : (p - bj);
+
+            for (int block_k = 0; block_k < num_blocks_k; block_k++) {
+                int bk = block_k * BLOCK_SIZE;
+                int current_block_size_k = (bk + BLOCK_SIZE <= n) ? BLOCK_SIZE : (n - bk);
+
+                clSetKernelArg(krnl, 0, sizeof(cl_mem), &bufferA);
+                clSetKernelArg(krnl, 1, sizeof(cl_mem), &bufferB);
+                clSetKernelArg(krnl, 2, sizeof(cl_mem), &bufferC);
+                clSetKernelArg(krnl, 3, sizeof(int), &bi);  
+                clSetKernelArg(krnl, 4, sizeof(int), &bj);
+                clSetKernelArg(krnl, 5, sizeof(int), &bk);
+                clSetKernelArg(krnl, 6, sizeof(int), &current_block_size_i);
+                clSetKernelArg(krnl, 7, sizeof(int), &current_block_size_j);
+                clSetKernelArg(krnl, 8, sizeof(int), &current_block_size_k);
+
+                // Enqueue the kernel using enqueueTask
+
+		size_t global_size[2] = {static_cast<size_t>(current_block_size_i), static_cast<size_t>(current_block_size_j)};
+                size_t local_size[2] = {1, 1};
+                clEnqueueNDRangeKernel(queue, krnl, 2, nullptr, global_size, local_size, 0, nullptr, nullptr);
             }
         }
     }
 
-//#pragma omp parallel for schedule(static)
-    for (int i = 0; i < b->grad.size(); i++)
-        for (int thread = 0; thread < 16; thread++)
-            b->grad[i] += b->local_grad[thread][i];
-    timer_stop(TMR_MATMUL_BW);
+    // Wait for memory migration to complete
+    clWaitForEvents(1, &write_event);
+
+    // Release events after they are no longer needed
+    if (write_event != nullptr)
+        clReleaseEvent(write_event);
+
+    timer_stop(TMR_MATMUL_FW);
 }
 
-
-void Matmul::backward() {
-    timer_start(TMR_MATMUL_BW);
-    a->zero_grad();
-    b->zero_grad();
-
-    // Loop over blocks
-    for (int bi = 0; bi < m; bi += BLOCK_SIZE) {
-        for (int bj = 0; bj < n; bj += BLOCK_SIZE) {
-            for (int bk = 0; bk < p; bk += BLOCK_SIZE) {
-                // Perform blocked matrix multiplication for backward pass
-                block_mmul(
-                    &c->grad[bi * p + bk], // C gradient block
-                    &b->data[bj * p + bk], // B block
-                    &a->grad[bi * n], // A gradient block
-                    BLOCK_SIZE, p, p, n
-                );
-
-
-	   // Update B gradients (unrolled for efficiency)
-                for (int i = 0; i < BLOCK_SIZE; i++) {
-                    for (int j = 0; j < BLOCK_SIZE; j++) {
-                        for (int k = 0; k < BLOCK_SIZE; k++) {
-                            b->grad[(bj + j) * p + bk + k] += c->grad[(bi + i) * p + bk + k] * a->data[(bi + i) * n + bj + j];
-                        }
-                    }
-                } 
-	    
-	    }
-        }
-    }
-
-//#pragma omp parallel for schedule(static)
-    for (int i = 0; i < b->grad.size(); i++)
-        for (int thread = 0; thread < 16; thread++)
-            b->grad[i] += b->local_grad[thread][i];
-
-    timer_stop(TMR_MATMUL_BW);
-}
-
-#endif
-
-
-*/
-
-//#ifndef BLOCKED
 /*
+   Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p) :
+   a(a), b(b), c(c), m(m), n(n), p(p) {}
 
-Matmul::Matmul(Variable *a, Variable *b, Variable *c, int m, int n, int p) :
-	a(a), b(b), c(c), m(m), n(n), p(p) {}
+   void Matmul::forward(bool training) {
 
-
-	void Matmul::forward(bool training) {
-		timer_start(TMR_MATMUL_FW);
-		c->zero();
+#ifdef DEBUG
+printf("Matmul forward is called\n");
+#endif
+timer_start(TMR_MATMUL_FW);
+c->zero();
 #pragma omp parallel for schedule(static)
-		for (int i = 0; i < m; i++)
-			for (int j = 0; j < n; j++) {
+for (int i = 0; i < m; i++)
+for (int j = 0; j < n; j++) {
 #ifdef SIMD
 #pragma omp simd
 #endif
-				for (int k = 0; k < p; k++)
-					c->data[i * p + k] += a->data[i * n + j] * b->data[j * p + k];
-			}
-		timer_stop(TMR_MATMUL_FW);
-	}
-
+for (int k = 0; k < p; k++)
+c->data[i * p + k] += a->data[i * n + j] * b->data[j * p + k];
+}
+timer_stop(TMR_MATMUL_FW);
+}
 */
 void Matmul::backward() {
+#ifdef DEBUG
+	printf("Matmul backward is called\n");
+#endif
 	timer_start(TMR_MATMUL_BW);
 	a->zero_grad();
 	b->zero_grad();
@@ -211,13 +238,13 @@ void Matmul::backward() {
 	timer_stop(TMR_MATMUL_BW);
 }
 
-
-//#endif
-
 SparseMatmul::SparseMatmul(Variable *a, Variable *b, Variable *c, SparseIndex *sp, int m, int n, int p) :
 	a(a), b(b), c(c), sp(sp), m(m), n(n), p(p) {}
 
 	void SparseMatmul::forward(bool training) {
+#ifdef DEBUG
+		printf("Sparse Matmul forward is called\n");
+#endif
 		timer_start(TMR_SPMATMUL_FW);
 		c->zero();
 #pragma omp parallel for schedule(static)
@@ -234,6 +261,9 @@ SparseMatmul::SparseMatmul(Variable *a, Variable *b, Variable *c, SparseIndex *s
 	}
 
 void SparseMatmul::backward() {
+#ifdef DEBUG
+	printf("Sparse Matmul backward is called\n");
+#endif
 	timer_start(TMR_SPMATMUL_BW);
 	b->zero_grad();
 	int row = 0;
@@ -264,11 +294,14 @@ void SparseMatmul::backward() {
 	timer_stop(TMR_SPMATMUL_BW);
 }
 
-
 GraphSum::GraphSum(Variable *in, Variable *out, SparseIndex *graph, int dim) :
 	in(in), out(out), graph(graph), dim(dim) {}
 
 	void GraphSum::forward(bool training) {
+
+#ifdef DEBUG
+		printf("Graphsum forward is called\n");
+#endif
 		timer_start(TMR_GRAPHSUM_FW);
 		out->zero();
 #pragma omp parallel for schedule(static)
@@ -289,6 +322,9 @@ GraphSum::GraphSum(Variable *in, Variable *out, SparseIndex *graph, int dim) :
 	}
 
 void GraphSum::backward() {
+#ifdef DEBUG
+	printf("Graphsum backward is called\n");
+#endif
 	timer_start(TMR_GRAPHSUM_BW);
 	in->zero_grad();
 #pragma omp parallel for schedule(static)
