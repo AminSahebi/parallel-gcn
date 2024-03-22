@@ -1,5 +1,5 @@
+/*
 #include <hls_stream.h>
-
 #define BLOCK_SIZE 512
 extern "C" {
 
@@ -68,12 +68,11 @@ extern "C" {
     }
 }
 
+*/
 
+#include <hls_stream.h>
 
-/*
- * #include <hls_stream.h>
-
-#define BLOCK_SIZE 16
+#define BLOCK_SIZE 64
 extern "C" {
 
 	void mmul_kernel_0(const float A[BLOCK_SIZE][BLOCK_SIZE], const float B[BLOCK_SIZE][BLOCK_SIZE], float C[BLOCK_SIZE][BLOCK_SIZE]) {
@@ -93,7 +92,7 @@ extern "C" {
 #pragma HLS pipeline II=1
 				A_local[i][j] = A[i][j];
 				B_local[i][j] = B[i][j];
-				C_local[i][j] = C[i][j];
+		//		C_local[i][j] = C[i][j];
 			}
 		}
 
@@ -119,4 +118,4 @@ extern "C" {
 		}
 	}
 }
-*/
+
